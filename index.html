@@ -4,341 +4,191 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta name="theme-color" content="#f8f3ee">
+  <meta name="theme-color" content="#fbf7f3">
   <title>Bebeğimiz İçin Aile Tahminleri</title>
-  <meta name="description" content="Naime ve Serhan'ın bebeği için aile tahminleri ve zaman kapsülü.">
+  <meta name="description" content="Bebeğimiz için aile tahminleri ve zaman kapsülü.">
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <div class="ambient ambient-a" aria-hidden="true"></div>
-  <div class="ambient ambient-b" aria-hidden="true"></div>
-
-  <div class="site-shell">
+  <div class="page">
     <header class="topbar">
-      <a class="brand" href="./" aria-label="Ana sayfa">
-        <span class="brand-heart">♡</span>
-        <span>
-          <strong>Naime &amp; Serhan</strong>
-          <small>Aile Zaman Kapsülü</small>
-        </span>
-      </a>
-      <span class="privacy-badge">Aile için hazırlandı</span>
+      <a href="./" class="brand"><span>♡</span><strong>Bebeğimiz İçin Aile Tahminleri</strong></a>
+      <div class="top-note">Naime &amp; Serhan</div>
     </header>
 
-    <main class="experience">
-      <aside class="side-panel">
-        <div class="side-copy">
-          <p class="kicker">Bebeğimiz için</p>
-          <h2>Bugünün tahminleri, yarının hatırası.</h2>
-          <p>
-            Bu küçük sayfayı sadece bir anket olarak değil, bebeğimizin yıllar sonra açıp okuyabileceği bir aile anısı olarak hazırlıyoruz.
-          </p>
+    <main class="card" id="app">
+      <div class="progress-head" id="progress-head" hidden>
+        <div>
+          <span id="progress-label">Bölüm 1 / 9</span>
+          <strong id="progress-title">Sen kimsin?</strong>
         </div>
+        <div class="progress-track"><i id="progress-bar"></i></div>
+      </div>
 
-        <div class="journey-list" aria-label="Anket bölümleri">
-          <div class="journey-item" data-nav-step="identity">
-            <span>01</span>
-            <div><strong>Sen kimsin?</strong><small>Aile bağımız</small></div>
-          </div>
-          <div class="journey-item" data-nav-step="prediction">
-            <span>02</span>
-            <div><strong>Büyük tahmin</strong><small>Kız mı, erkek mi?</small></div>
-          </div>
-          <div class="journey-item" data-nav-step="memory">
-            <span>03</span>
-            <div><strong>Bugünden bir iz</strong><small>İlk his ve ilk kelime</small></div>
-          </div>
-          <div class="journey-item" data-nav-step="message">
-            <span>04</span>
-            <div><strong>Zaman kapsülü</strong><small>Dilek ve mesaj</small></div>
-          </div>
-          <div class="journey-item" data-nav-step="review">
-            <span>05</span>
-            <div><strong>Mühürle</strong><small>Son kontrol</small></div>
-          </div>
+      <section class="screen active intro" data-step="intro">
+        <div class="hero-mark"><span>?</span><b>♡</b><span>?</span></div>
+        <p class="eyebrow">AİLE TAHMİNLERİ 2026</p>
+        <h1>Sence bebeğimiz kim?</h1>
+        <p class="lead">
+          Bebeğimizin cinsiyetini henüz açıklamıyoruz. Tahminlerini, bugünkü hislerini ve bebeğimize bırakmak istediğin mesajları saklayacağız.
+          Lütfen cevaplarını diğerlerinin tahminlerinden etkilenmeden, kendi hislerine göre doldur.
+        </p>
+        <div class="intro-grid">
+          <article><span>01</span><strong>Tahmin et</strong><p>Kız mı erkek mi? Doğumla ve gelecekle ilgili tahminlerini bırak.</p></article>
+          <article><span>02</span><strong>Zaman kapsülü</strong><p>Bebeğimizin yıllar sonra okuyabileceği mesajlarını sakla.</p></article>
+          <article><span>03</span><strong>Canlı açıklama</strong><p>Açıklama günü yine bu sitede ailece buluşacağız.</p></article>
         </div>
+        <button class="primary large" type="button" data-action="start">Başla <span>→</span></button>
+        <p class="signature">Sevgiler, Naime &amp; Serhan ❤️</p>
+      </section>
 
-        <div class="reveal-note">
-          <span class="reveal-icon">●</span>
-          <div>
-            <strong>Canlı açıklama da bu sitede olacak</strong>
-            <p>Açıklama günü ailece aynı bağlantıda buluşacağız.</p>
-          </div>
+      <section class="screen" data-step="identity" data-title="Sen kimsin?">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>01</span><div><p>İLK BÖLÜM</p><h2>Sen kimsin?</h2></div></div>
+        <form class="stack step-form" data-next="prediction">
+          <label class="q"><em>1</em><div><strong>Sen kimsin? Adın ve soyadın nedir?</strong><input name="name" type="text" maxlength="80" placeholder="Adın ve soyadın" required></div></label>
+          <label class="q"><em>2</em><div><strong>Bebeğimizin nesi oluyorsun?</strong>
+            <select name="relation" required>
+              <option value="">Seç</option><option>Anneanne</option><option>Babaanne</option><option>Dede</option><option>Teyze</option><option>Hala</option><option>Dayı</option><option>Amca</option><option>Kuzen</option><option>Aile dostu</option><option>Diğer</option>
+            </select>
+          </div></label>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="prediction" data-title="Şimdi tahmin zamanı">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>02</span><div><p>🔮 ŞİMDİ TAHMİN ZAMANI</p><h2>İlk hissin ne söylüyor?</h2></div></div>
+        <form class="stack step-form" data-next="appearance">
+          <fieldset class="q"><em>3</em><div><legend>Sence bebeğimiz kız mı erkek mi?</legend><div class="choices two"><label><input type="radio" name="gender" value="👧 Kız" required><span>👧 Kız</span></label><label><input type="radio" name="gender" value="👦 Erkek"><span>👦 Erkek</span></label></div></div></fieldset>
+          <fieldset class="q"><em>4</em><div><legend>Tahmininden ne kadar eminsin?</legend><div class="choices six"><label><input type="radio" name="confidence" value="%50" required><span>%50</span></label><label><input type="radio" name="confidence" value="%60"><span>%60</span></label><label><input type="radio" name="confidence" value="%70"><span>%70</span></label><label><input type="radio" name="confidence" value="%80"><span>%80</span></label><label><input type="radio" name="confidence" value="%90"><span>%90</span></label><label><input type="radio" name="confidence" value="%100"><span>%100</span></label></div></div></fieldset>
+          <label class="q"><em>5</em><div><strong>Neden böyle düşünüyorsun?</strong><textarea name="reason" rows="4" required placeholder="İçinden geçen nedeni yaz..."></textarea></div></label>
+          <fieldset class="q"><em>6</em><div><legend>İlk öğrendiğinde içinden geçen tahmin neydi?</legend><div class="radio-list">
+            <label><input type="radio" name="firstGuess" value="İlk andan beri kız" required><span>İlk andan beri kız</span></label>
+            <label><input type="radio" name="firstGuess" value="İlk andan beri erkek"><span>İlk andan beri erkek</span></label>
+            <label><input type="radio" name="firstGuess" value="Önce kız düşündüm, sonra fikrim değişti"><span>Önce kız düşündüm, sonra fikrim değişti</span></label>
+            <label><input type="radio" name="firstGuess" value="Önce erkek düşündüm, sonra fikrim değişti"><span>Önce erkek düşündüm, sonra fikrim değişti</span></label>
+            <label><input type="radio" name="firstGuess" value="Hiç tahminim olmadı"><span>Hiç tahminim olmadı</span></label>
+          </div></div></fieldset>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="appearance" data-title="Bebeğimizi biraz daha tahmin edelim">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>03</span><div><p>👶 BEBEĞİMİZİ BİRAZ DAHA TAHMİN EDELİM</p><h2>Sence nasıl görünecek?</h2></div></div>
+        <form class="stack step-form" data-next="birth">
+          <fieldset class="q"><em>7</em><div><legend>Sence bebeğimiz en çok kime benzeyecek?</legend><div class="choices three">
+            <label><input type="radio" name="resemblance" value="Naime'ye" required><span>Naime'ye</span></label>
+            <label><input type="radio" name="resemblance" value="Serhan'a"><span>Serhan'a</span></label>
+            <label><input type="radio" name="resemblance" value="İkisinin karışımı"><span>İkisinin karışımı</span></label>
+            <label><input type="radio" name="resemblance" value="Anne tarafına"><span>Anne tarafına</span></label>
+            <label><input type="radio" name="resemblance" value="Baba tarafına"><span>Baba tarafına</span></label>
+            <label><input type="radio" name="resemblance" value="Hiç kimseye"><span>Hiç kimseye</span></label>
+          </div></div></fieldset>
+          <fieldset class="q"><em>8</em><div><legend>Sence bebeğimizin saçları nasıl olacak?</legend><div class="choices three">
+            <label><input type="radio" name="hair" value="Çok saçlı" required><span>Çok saçlı</span></label><label><input type="radio" name="hair" value="Az saçlı"><span>Az saçlı</span></label><label><input type="radio" name="hair" value="Koyu renk saçlı"><span>Koyu renk saçlı</span></label><label><input type="radio" name="hair" value="Açık renk saçlı"><span>Açık renk saçlı</span></label><label><input type="radio" name="hair" value="Kıvırcık"><span>Kıvırcık</span></label><label><input type="radio" name="hair" value="Düz"><span>Düz</span></label><label><input type="radio" name="hair" value="Hiçbir fikrim yok 😄"><span>Hiçbir fikrim yok 😄</span></label>
+          </div></div></fieldset>
+          <fieldset class="q"><em>9</em><div><legend>Sence bebeğimizin gözleri ne renk olacak?</legend><div class="choices three">
+            <label><input type="radio" name="eyes" value="Kahverengi" required><span>Kahverengi</span></label><label><input type="radio" name="eyes" value="Ela"><span>Ela</span></label><label><input type="radio" name="eyes" value="Yeşil"><span>Yeşil</span></label><label><input type="radio" name="eyes" value="Mavi"><span>Mavi</span></label><label><input type="radio" name="eyes" value="Başka / Emin değilim"><span>Başka / Emin değilim</span></label>
+          </div></div></fieldset>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="birth" data-title="Doğum tahminleri">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>04</span><div><p>🍼 DOĞUM TAHMİNLERİ</p><h2>Tarihi ve ölçüleri de tahmin et.</h2></div></div>
+        <form class="stack step-form" data-next="future">
+          <label class="q"><em>10</em><div><strong>Bebeğimiz hangi tarihte doğacak?</strong><input name="birthDate" type="date" required></div></label>
+          <label class="q"><em>11</em><div><strong>Sence doğduğunda kaç kilo olacak?</strong><input name="birthWeight" type="text" maxlength="30" placeholder="Örn. 3.250 gram" required></div></label>
+          <label class="q"><em>12</em><div><strong>Sence doğduğunda boyu kaç santimetre olacak?</strong><input name="birthHeight" type="text" maxlength="30" placeholder="Örn. 51 cm" required></div></label>
+          <label class="q"><em>13</em><div><strong>Sence doğum günü hangi saatte olacak?</strong><input name="birthTime" type="time" required></div></label>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="future" data-title="Gelecekte nasıl biri olacak?">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>05</span><div><p>🍼 GELECEKTE NASIL BİRİ OLACAK?</p><h2>Biraz da geleceği hayal edelim.</h2></div></div>
+        <form class="stack step-form" data-next="names">
+          <fieldset class="q"><em>14</em><div><legend>Sence bebeğimizin karakteri nasıl olacak?</legend><p class="helper">Birden fazla seçebilirsin.</p><div class="choices three checks">
+            <label><input type="checkbox" name="character" value="Sakin"><span>Sakin</span></label><label><input type="checkbox" name="character" value="Hareketli"><span>Hareketli</span></label><label><input type="checkbox" name="character" value="Meraklı"><span>Meraklı</span></label><label><input type="checkbox" name="character" value="Konuşkan"><span>Konuşkan</span></label><label><input type="checkbox" name="character" value="Utangaç"><span>Utangaç</span></label><label><input type="checkbox" name="character" value="Komik"><span>Komik</span></label><label><input type="checkbox" name="character" value="İnatçı"><span>İnatçı</span></label><label><input type="checkbox" name="character" value="Duygusal"><span>Duygusal</span></label><label><input type="checkbox" name="character" value="Cesur"><span>Cesur</span></label><label><input type="checkbox" name="character" value="Çok sosyal"><span>Çok sosyal</span></label><label><input type="checkbox" name="character" value="Kitap kurdu"><span>Kitap kurdu</span></label><label><input type="checkbox" name="character" value="Maceracı"><span>Maceracı</span></label>
+          </div></div></fieldset>
+          <label class="q"><em>15</em><div><strong>Sence büyüdüğünde en çok neyi sevecek?</strong><textarea name="likes" rows="4" required></textarea></div></label>
+          <label class="q"><em>16</em><div><strong>Sence büyüyünce ne olmak isteyecek?</strong><textarea name="career" rows="4" required></textarea></div></label>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="names" data-title="İsim tahminleri">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>06</span><div><p>💭 İSİM TAHMİNLERİ</p><h2>İsim konusunda ne düşünüyorsun?</h2></div></div>
+        <form class="stack step-form" data-next="capsule">
+          <label class="q"><em>17</em><div><strong>Eğer kızsa sence adını ne koyacağız?</strong><input name="girlName" type="text" maxlength="80" required></div></label>
+          <label class="q"><em>18</em><div><strong>Eğer erkekse sence adını ne koyacağız?</strong><input name="boyName" type="text" maxlength="80" required></div></label>
+          <label class="q"><em>19</em><div><strong>Bebeğimiz için sen bir isim seçseydin hangi ismi seçerdin?</strong><input name="yourNameChoice" type="text" maxlength="80" required></div></label>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="capsule" data-title="Bebeğimize zaman kapsülü">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>07</span><div><p>❤️ BEBEĞİMİZE ZAMAN KAPSÜLÜ</p><h2>Bu bölüm yıllar sonra onun için.</h2></div></div>
+        <form class="stack step-form" data-next="uploads">
+          <label class="q"><em>20</em><div><strong>Bebeğimiz büyüdüğünde bu formu okuduğunda ona ne söylemek istersin?</strong><textarea name="futureMessage" rows="5" required></textarea></div></label>
+          <label class="q"><em>21</em><div><strong>Onun için en büyük dileğin nedir?</strong><textarea name="biggestWish" rows="4" required></textarea></div></label>
+          <label class="q"><em>22</em><div><strong>Bir gün zor zamanlar yaşadığında ona hangi cümleyi hatırlatmak istersin?</strong><textarea name="hardTimes" rows="4" required></textarea></div></label>
+          <label class="q"><em>23</em><div><strong>Ailemizin bebeğine verebileceğin en önemli hayat tavsiyesi nedir?</strong><textarea name="lifeAdvice" rows="4" required></textarea></div></label>
+          <label class="q"><em>24</em><div><strong>Bebeğimizle gelecekte birlikte yapmak istediğin bir şey var mı?</strong><textarea name="futureActivity" rows="4" required></textarea></div></label>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="uploads" data-title="İsteğe bağlı hatıra">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>08</span><div><p>📸 İSTEĞE BAĞLI HATIRA</p><h2>Bir fotoğraf ya da ses de bırakabilirsin.</h2></div></div>
+        <form class="stack step-form" data-next="last">
+          <label class="q upload"><em>25</em><div><strong>Bebeğimize bugünden bir fotoğraf bırakmak ister misin?</strong><input name="photo" type="file" accept="image/*"><small>İsteğe bağlı. Test sürümünde dosyanın kendisi henüz sunucuya yüklenmez.</small></div></label>
+          <label class="q upload"><em>26</em><div><strong>Bebeğimiz için kısa bir video veya sesli mesaj bırakmak ister misin?</strong><input name="media" type="file" accept="audio/*,video/*"><small>İsteğe bağlı. Kayıt sistemi sonraki aşamada bağlanacak.</small></div></label>
+          <button class="primary" type="submit">Devam et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="last" data-title="Son soru">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>09</span><div><p>🕰️ SON SORU</p><h2>Biraz da gelecekteki halimize gülelim.</h2></div></div>
+        <form class="stack step-form" data-next="review">
+          <label class="q"><em>27</em><div><strong>Yıllar sonra hep birlikte bu cevapları okuduğumuzda sence en çok hangi cevabına güleceğiz?</strong><textarea name="funnyAnswer" rows="5" required></textarea></div></label>
+          <button class="primary" type="submit">Cevaplarımı kontrol et <span>→</span></button>
+        </form>
+      </section>
+
+      <section class="screen" data-step="review" data-title="Son kontrol">
+        <button class="back" type="button" data-action="back">← Geri</button>
+        <div class="section-title"><span>✓</span><div><p>SON KONTROL</p><h2>Tahminlerini mühürlemeden önce.</h2></div></div>
+        <div id="review-list" class="review-list"></div>
+        <button class="primary seal" type="button" data-action="submit">Tahminlerimi mühürle ♡</button>
+        <p class="prototype">Şu anda deneme sürümü: cevaplar bu cihazın tarayıcısında saklanır. Ortak aile veritabanını sonraki aşamada bağlayacağız.</p>
+      </section>
+
+      <section class="screen success" data-step="success">
+        <div class="success-icon">♡</div>
+        <p class="eyebrow">❤️ TEŞEKKÜRLER</p>
+        <h2>Tahminin artık kayıt altında. 😊</h2>
+        <p class="lead">Yakında bebeğimizin kız mı erkek mi olduğunu açıklayacağız. O gün yine aynı yerde ailece buluşacağız.</p>
+        <div class="success-card">
+          <strong id="success-name"></strong>
+          <span id="success-gender"></span>
+          <time id="success-date"></time>
         </div>
-      </aside>
-
-      <section class="form-panel" id="app">
-        <section class="screen is-active" data-step="intro" aria-labelledby="intro-title">
-          <div class="intro-wrap">
-            <div class="baby-mark" aria-hidden="true">
-              <span class="pink-dot">?</span>
-              <span class="center-heart">♡</span>
-              <span class="blue-dot">?</span>
-            </div>
-
-            <p class="eyebrow">👶 Bebeğimiz İçin Aile Tahminleri</p>
-            <h1 id="intro-title">Sence minik misafirimiz kim?</h1>
-            <p class="intro-text">
-              Daha tanışmadan önce hepimizin bir hissi var. Tahminini ve bebeğimiz için bırakmak istediğin birkaç kelimeyi kaydedelim. Yıllar sonra birlikte açıp okuyalım.
-            </p>
-
-            <div class="intro-cards">
-              <article>
-                <span>♡</span>
-                <strong>Tahminini bırak</strong>
-                <p>Kız mı, erkek mi? İlk hissini saklayalım.</p>
-              </article>
-              <article>
-                <span>✦</span>
-                <strong>Bir anı bırak</strong>
-                <p>Bebeğimiz için bugünden küçük bir iz kalsın.</p>
-              </article>
-            </div>
-
-            <button class="primary-btn large-btn" type="button" data-action="start">
-              Başlayalım
-              <span>→</span>
-            </button>
-
-            <p class="signature">Sevgiler, Naime &amp; Serhan ❤️</p>
-          </div>
-        </section>
-
-        <section class="screen" data-step="identity" aria-labelledby="identity-title">
-          <div class="mobile-progress"><span>1 / 5</span><i style="width:20%"></i></div>
-          <button class="back-btn" type="button" data-action="back">← Geri</button>
-
-          <div class="section-heading">
-            <span class="step-no">01</span>
-            <div>
-              <p class="eyebrow">Önce seni tanıyalım</p>
-              <h2 id="identity-title">Sen kimsin?</h2>
-              <p>Yıllar sonra bebeğimiz bu mesajın kimden geldiğini bilsin.</p>
-            </div>
-          </div>
-
-          <form class="question-stack" id="identity-form">
-            <label class="question-card">
-              <span class="question-label">Adın ve soyadın</span>
-              <input id="name" name="name" type="text" autocomplete="name" maxlength="80" placeholder="Örn. Ayşe Yılmaz" required>
-            </label>
-
-            <label class="question-card">
-              <span class="question-label">Bebeğimizin nesi oluyorsun?</span>
-              <input id="relation" name="relation" type="text" maxlength="70" list="relation-options" placeholder="Örn. Teyzesi" required>
-              <datalist id="relation-options">
-                <option value="Anneannesi"></option>
-                <option value="Babaannesi"></option>
-                <option value="Dedesi"></option>
-                <option value="Teyzesi"></option>
-                <option value="Halası"></option>
-                <option value="Dayısı"></option>
-                <option value="Amcası"></option>
-                <option value="Kuzeni"></option>
-                <option value="Aile dostu"></option>
-              </datalist>
-            </label>
-
-            <button class="primary-btn" type="submit">Tahmine geç <span>→</span></button>
-          </form>
-        </section>
-
-        <section class="screen" data-step="prediction" aria-labelledby="prediction-title">
-          <div class="mobile-progress"><span>2 / 5</span><i style="width:40%"></i></div>
-          <button class="back-btn" type="button" data-action="back">← Geri</button>
-
-          <div class="section-heading">
-            <span class="step-no">02</span>
-            <div>
-              <p class="eyebrow">Büyük tahmin</p>
-              <h2 id="prediction-title">Sence bebeğimiz kız mı, erkek mi?</h2>
-              <p>İlk içinden geleni seç. Başkalarının tahminlerini şimdilik görmeyeceksin.</p>
-            </div>
-          </div>
-
-          <div class="gender-grid" role="group" aria-label="Cinsiyet tahmini">
-            <button class="gender-card girl-card" type="button" data-prediction="Kız" aria-pressed="false">
-              <div class="gender-symbol">♡</div>
-              <span class="gender-small">Benim tahminim</span>
-              <strong>Kız</strong>
-              <span class="select-note">Bunu seç</span>
-            </button>
-
-            <button class="gender-card boy-card" type="button" data-prediction="Erkek" aria-pressed="false">
-              <div class="gender-symbol">☆</div>
-              <span class="gender-small">Benim tahminim</span>
-              <strong>Erkek</strong>
-              <span class="select-note">Bunu seç</span>
-            </button>
-          </div>
-
-          <p class="inline-error" id="prediction-error" role="alert"></p>
-
-          <button class="primary-btn" type="button" data-action="prediction-next" disabled>
-            Devam et <span>→</span>
-          </button>
-        </section>
-
-        <section class="screen" data-step="memory" aria-labelledby="memory-title">
-          <div class="mobile-progress"><span>3 / 5</span><i style="width:60%"></i></div>
-          <button class="back-btn" type="button" data-action="back">← Geri</button>
-
-          <div class="section-heading">
-            <span class="step-no">03</span>
-            <div>
-              <p class="eyebrow">Bugünden bir iz</p>
-              <h2 id="memory-title">Bu anı biraz daha saklayalım.</h2>
-              <p>Buradaki cevapların doğru ya da yanlış olması önemli değil. Bugünkü hissin kalsın.</p>
-            </div>
-          </div>
-
-          <form class="question-stack" id="memory-form">
-            <label class="question-card">
-              <span class="question-label">Bebeğimizi düşündüğünde aklına gelen ilk kelime ne?</span>
-              <input id="first-word" name="firstWord" type="text" maxlength="80" placeholder="Örn. Neşe, merak, mucize..." required>
-            </label>
-
-            <label class="question-card">
-              <span class="question-label">Bugünden hatırlamak istediğin küçük bir cümle var mı?</span>
-              <textarea id="today-note" name="todayNote" rows="4" maxlength="500" placeholder="İstersen bu günü, heyecanını ya da aklından geçen bir şeyi yaz..."></textarea>
-              <small>İsteğe bağlı</small>
-            </label>
-
-            <button class="primary-btn" type="submit">Zaman kapsülüne geç <span>→</span></button>
-          </form>
-        </section>
-
-        <section class="screen" data-step="message" aria-labelledby="message-title">
-          <div class="mobile-progress"><span>4 / 5</span><i style="width:80%"></i></div>
-          <button class="back-btn" type="button" data-action="back">← Geri</button>
-
-          <div class="section-heading">
-            <span class="step-no">04</span>
-            <div>
-              <p class="eyebrow">Zaman kapsülü</p>
-              <h2 id="message-title">Bebeğimize bir şey bırak.</h2>
-              <p>Belki bunu yıllar sonra kendi okuyacak.</p>
-            </div>
-          </div>
-
-          <form class="question-stack" id="message-form">
-            <label class="question-card">
-              <span class="question-label">Bebeğimiz için en güzel dileğin nedir?</span>
-              <textarea id="wish" name="wish" rows="3" maxlength="500" placeholder="Sağlıkla, sevgiyle, güzel insanlarla büyümesi gibi..."></textarea>
-              <small>İsteğe bağlı</small>
-            </label>
-
-            <label class="question-card featured-question">
-              <span class="question-label">Bebeğimize yıllar sonra okuyabileceği bir mesaj bırak 💌</span>
-              <textarea id="baby-message" name="babyMessage" rows="7" maxlength="1800" placeholder="Sevgili minik..."></textarea>
-              <small>İsteğe bağlı, ama bu sayfanın en güzel hatırası olabilir.</small>
-            </label>
-
-            <label class="question-card">
-              <span class="question-label">Yıllar sonra hepimizi güldürecek bir cümle bırakmak ister misin?</span>
-              <input id="funny-note" name="funnyNote" type="text" maxlength="220" placeholder="İsteğe bağlı">
-            </label>
-
-            <button class="primary-btn" type="submit">Son kontrole geç <span>→</span></button>
-          </form>
-        </section>
-
-        <section class="screen" data-step="review" aria-labelledby="review-title">
-          <div class="mobile-progress"><span>5 / 5</span><i style="width:100%"></i></div>
-          <button class="back-btn" type="button" data-action="back">← Geri</button>
-
-          <div class="section-heading">
-            <span class="step-no">05</span>
-            <div>
-              <p class="eyebrow">Son kontrol</p>
-              <h2 id="review-title">Hazırsan tahminini mühürleyelim.</h2>
-              <p>Kaydetmeden önce cevaplarını son kez görebilirsin.</p>
-            </div>
-          </div>
-
-          <div class="review-sheet">
-            <div class="review-person">
-              <div class="avatar" id="review-avatar">A</div>
-              <div>
-                <strong id="review-name">Ad Soyad</strong>
-                <span id="review-relation">Yakınlık</span>
-              </div>
-              <div class="prediction-stamp" id="review-prediction">Kız</div>
-            </div>
-
-            <div class="review-row">
-              <span>İlk kelime</span>
-              <p id="review-first-word"></p>
-            </div>
-
-            <div class="review-row" id="review-today-note-wrap">
-              <span>Bugünden not</span>
-              <p id="review-today-note"></p>
-            </div>
-
-            <div class="review-row" id="review-wish-wrap">
-              <span>Dilek</span>
-              <p id="review-wish"></p>
-            </div>
-
-            <div class="review-row" id="review-message-wrap">
-              <span>Bebeğimize mesaj</span>
-              <p id="review-message"></p>
-            </div>
-
-            <div class="review-row" id="review-funny-wrap">
-              <span>Geleceğe küçük not</span>
-              <p id="review-funny"></p>
-            </div>
-          </div>
-
-          <button class="primary-btn seal-btn" type="button" data-action="submit">
-            <span>♡</span> Tahminimi mühürle
-          </button>
-          <p class="prototype-warning">
-            Bu şu an deneme sürümü. Kaydedilen cevap yalnızca bu cihazda tutuluyor. Aileden gelen tüm cevapları ortak yerde saklayan sistem sonraki aşamada bağlanacak.
-          </p>
-        </section>
-
-        <section class="screen" data-step="success" aria-labelledby="success-title">
-          <div class="success-wrap">
-            <div class="envelope" aria-hidden="true">♡</div>
-            <p class="eyebrow">Zaman kapsülüne eklendi</p>
-            <h2 id="success-title">Tahminin mühürlendi.</h2>
-            <p class="success-copy">
-              Bu küçük not, bebeğimiz için sakladığımız aile hatırasının bir parçası oldu.
-            </p>
-
-            <div class="saved-card">
-              <div>
-                <span id="success-name">Ad Soyad</span>
-                <small id="success-relation">Yakınlık</small>
-              </div>
-              <strong id="success-prediction">Kız</strong>
-              <time id="success-date"></time>
-            </div>
-
-            <div class="next-event">
-              <span class="camera-icon">◉</span>
-              <div>
-                <strong>Sırada canlı açıklama var</strong>
-                <p>Açıklama günü aynı siteden görüntülü aile buluşmasına katılacağız.</p>
-              </div>
-            </div>
-
-            <button class="secondary-btn" type="button" data-action="restart">Başa dön</button>
-            <p class="signature bottom-signature">Sevgiler, Naime &amp; Serhan ❤️</p>
-          </div>
-        </section>
+        <button class="secondary" type="button" data-action="restart">Başa dön</button>
+        <p class="signature">Sevgiler, Naime &amp; Serhan ❤️</p>
       </section>
     </main>
 
-    <footer class="footer">
-      <span>Bu sayfa aile hatırası olarak hazırlanmıştır.</span>
-      <span>Arama motorlarında listelenmemesi istenmiştir.</span>
-    </footer>
+    <footer>Bu sayfa aile hatırası için hazırlanmıştır.</footer>
   </div>
-
   <script src="./app.js"></script>
 </body>
 </html>
