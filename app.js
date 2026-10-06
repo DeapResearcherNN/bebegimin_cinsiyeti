@@ -1,207 +1,136 @@
 (() => {
-  const state = {
-    name: "",
-    relation: "",
-    prediction: "",
-    firstWord: "",
-    todayNote: "",
-    wish: "",
-    babyMessage: "",
-    funnyNote: ""
+  const order = ["intro","identity","prediction","appearance","birth","future","names","capsule","uploads","last","review","success"];
+  const sections = ["identity","prediction","appearance","birth","future","names","capsule","uploads","last"];
+  const sectionNames = {
+    identity:"Sen kimsin?", prediction:"Şimdi tahmin zamanı", appearance:"Bebeğimizi biraz daha tahmin edelim",
+    birth:"Doğum tahminleri", future:"Gelecekte nasıl biri olacak?", names:"İsim tahminleri",
+    capsule:"Bebeğimize zaman kapsülü", uploads:"İsteğe bağlı hatıra", last:"Son soru"
   };
+  const state = {};
+  let current = "intro";
+  const screens = [...document.querySelectorAll(".screen")];
+  const progressHead = document.querySelector("#progress-head");
+  const progressLabel = document.querySelector("#progress-label");
+  const progressTitle = document.querySelector("#progress-title");
+  const progressBar = document.querySelector("#progress-bar");
 
-  const order = ["intro", "identity", "prediction", "memory", "message", "review", "success"];
-  const journeySteps = ["identity", "prediction", "memory", "message", "review"];
-  let currentIndex = 0;
-
-  const screens = Array.from(document.querySelectorAll(".screen"));
-  const identityForm = document.querySelector("#identity-form");
-  const memoryForm = document.querySelector("#memory-form");
-  const messageForm = document.querySelector("#message-form");
-  const predictionButtons = Array.from(document.querySelectorAll("[data-prediction]"));
-  const predictionNext = document.querySelector('[data-action="prediction-next"]');
-  const predictionError = document.querySelector("#prediction-error");
-
-  function clean(value) {
-    return String(value || "").trim();
-  }
-
-  function showStep(name) {
-    screens.forEach((screen) => {
-      screen.classList.toggle("is-active", screen.dataset.step === name);
-    });
-
-    currentIndex = order.indexOf(name);
-
-    document.querySelectorAll("[data-nav-step]").forEach((item) => {
-      item.classList.toggle("is-current", item.dataset.navStep === name);
-    });
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    const active = document.querySelector('.screen[data-step="' + name + '"]');
-    const focusTarget = active ? active.querySelector("h1, h2, input, button, textarea") : null;
-    if (focusTarget) {
-      setTimeout(() => focusTarget.focus({ preventScroll: true }), 120);
+  function show(step){
+    screens.forEach(s => s.classList.toggle("active", s.dataset.step === step));
+    current = step;
+    const idx = sections.indexOf(step);
+    progressHead.hidden = idx < 0;
+    if(idx >= 0){
+      progressLabel.textContent = "Bölüm " + (idx+1) + " / " + sections.length;
+      progressTitle.textContent = sectionNames[step];
+      progressBar.style.width = (((idx+1)/sections.length)*100) + "%";
     }
+    window.scrollTo({top:0,behavior:"smooth"});
   }
 
-  function goBack() {
-    if (currentIndex <= 0) return;
-    showStep(order[currentIndex - 1]);
+  function valueOf(el){
+    if(el.type === "file") return el.files && el.files[0] ? el.files[0].name : "";
+    return el.value;
   }
 
-  function updatePredictionUI() {
-    predictionButtons.forEach((button) => {
-      button.setAttribute(
-        "aria-pressed",
-        button.dataset.prediction === state.prediction ? "true" : "false"
-      );
-    });
-    predictionNext.disabled = !state.prediction;
-  }
-
-  function fillReview() {
-    document.querySelector("#review-name").textContent = state.name;
-    document.querySelector("#review-relation").textContent = state.relation;
-    document.querySelector("#review-prediction").textContent = state.prediction;
-    document.querySelector("#review-avatar").textContent =
-      state.name.charAt(0).toLocaleUpperCase("tr-TR") || "♡";
-
-    document.querySelector("#review-first-word").textContent = state.firstWord;
-    document.querySelector("#review-today-note").textContent = state.todayNote;
-    document.querySelector("#review-wish").textContent = state.wish;
-    document.querySelector("#review-message").textContent = state.babyMessage;
-    document.querySelector("#review-funny").textContent = state.funnyNote;
-
-    document.querySelector("#review-today-note-wrap").hidden = !state.todayNote;
-    document.querySelector("#review-wish-wrap").hidden = !state.wish;
-    document.querySelector("#review-message-wrap").hidden = !state.babyMessage;
-    document.querySelector("#review-funny-wrap").hidden = !state.funnyNote;
-  }
-
-  function savePrototype() {
-    const record = {
-      id: "prediction_" + Date.now(),
-      ...state,
-      createdAt: new Date().toISOString()
-    };
-
-    const storageKey = "bebegimin_cinsiyeti_predictions";
-    let saved = [];
-
-    try {
-      saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      if (!Array.isArray(saved)) saved = [];
-    } catch (_) {
-      saved = [];
+  function collect(form){
+    const data = new FormData(form);
+    for(const [key,val] of data.entries()){
+      if(val instanceof File){
+        if(val.name) state[key] = val.name;
+      } else if(key === "character"){
+        if(!Array.isArray(state[key])) state[key] = [];
+        if(!state[key].includes(val)) state[key].push(val);
+      } else {
+        state[key] = val;
+      }
     }
-
-    saved.push(record);
-    localStorage.setItem(storageKey, JSON.stringify(saved));
-
-    document.querySelector("#success-name").textContent = state.name;
-    document.querySelector("#success-relation").textContent = state.relation;
-    document.querySelector("#success-prediction").textContent = state.prediction;
-    document.querySelector("#success-date").textContent =
-      new Intl.DateTimeFormat("tr-TR", {
-        dateStyle: "long",
-        timeStyle: "short"
-      }).format(new Date());
-
-    showStep("success");
-  }
-
-  function resetAll() {
-    Object.keys(state).forEach((key) => {
-      state[key] = "";
+    form.querySelectorAll('input[type="file"]').forEach(el => {
+      if(el.files && el.files[0]) state[el.name] = el.files[0].name;
     });
-
-    identityForm.reset();
-    memoryForm.reset();
-    messageForm.reset();
-    updatePredictionUI();
-    showStep("intro");
   }
 
-  document.addEventListener("click", (event) => {
-    const actionButton = event.target.closest("[data-action]");
-
-    if (actionButton) {
-      const action = actionButton.dataset.action;
-
-      if (action === "start") {
-        showStep("identity");
-        return;
-      }
-
-      if (action === "back") {
-        goBack();
-        return;
-      }
-
-      if (action === "prediction-next") {
-        if (!state.prediction) {
-          predictionError.textContent = "Devam etmek için bir tahmin seç.";
+  document.querySelectorAll(".step-form").forEach(form => {
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      if(!form.reportValidity()) return;
+      if(form.querySelectorAll('input[name="character"]').length){
+        const checked = [...form.querySelectorAll('input[name="character"]:checked')].map(x=>x.value);
+        if(!checked.length){
+          alert("Lütfen 14. soruda en az bir özellik seç.");
           return;
         }
-        predictionError.textContent = "";
-        showStep("memory");
-        return;
+        state.character = checked;
       }
+      collect(form);
+      const next = form.dataset.next;
+      if(next === "review") buildReview();
+      show(next);
+    });
+  });
 
-      if (action === "submit") {
-        savePrototype();
-        return;
-      }
+  const labels = {
+    name:"1. Ad ve soyad", relation:"2. Bebeğimizin nesi", gender:"3. Cinsiyet tahmini", confidence:"4. Eminlik",
+    reason:"5. Neden böyle düşünüyorsun?", firstGuess:"6. İlk tahmin", resemblance:"7. Kime benzeyecek?",
+    hair:"8. Saçları", eyes:"9. Gözleri", birthDate:"10. Doğum tarihi", birthWeight:"11. Doğum kilosu",
+    birthHeight:"12. Doğum boyu", birthTime:"13. Doğum saati", character:"14. Karakter", likes:"15. En çok neyi sevecek?",
+    career:"16. Ne olmak isteyecek?", girlName:"17. Kız ismi tahmini", boyName:"18. Erkek ismi tahmini",
+    yourNameChoice:"19. Senin isim seçimin", futureMessage:"20. Yıllar sonra mesaj", biggestWish:"21. En büyük dilek",
+    hardTimes:"22. Zor zamanlar için cümle", lifeAdvice:"23. Hayat tavsiyesi", futureActivity:"24. Birlikte yapmak istediğin şey",
+    photo:"25. Fotoğraf", media:"26. Video / ses", funnyAnswer:"27. En çok hangi cevaba güleceğiz?"
+  };
+  const groups = [
+    ["Sen kimsin?",["name","relation"]],
+    ["Tahmin",["gender","confidence","reason","firstGuess"]],
+    ["Görünüş",["resemblance","hair","eyes"]],
+    ["Doğum",["birthDate","birthWeight","birthHeight","birthTime"]],
+    ["Gelecek",["character","likes","career"]],
+    ["İsimler",["girlName","boyName","yourNameChoice"]],
+    ["Zaman kapsülü",["futureMessage","biggestWish","hardTimes","lifeAdvice","futureActivity"]],
+    ["Hatıra",["photo","media"]],
+    ["Son soru",["funnyAnswer"]]
+  ];
 
-      if (action === "restart") {
-        resetAll();
-      }
+  function esc(s){return String(s ?? "").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+  function buildReview(){
+    const box = document.querySelector("#review-list");
+    box.innerHTML = groups.map(([title,keys]) => {
+      const rows = keys.map(k => {
+        let v = state[k];
+        if(Array.isArray(v)) v = v.join(", ");
+        if(!v) v = "—";
+        return '<div class="review-row"><span>'+esc(labels[k])+'</span><strong>'+esc(v)+'</strong></div>';
+      }).join("");
+      return '<section class="review-group"><h3>'+esc(title)+'</h3>'+rows+'</section>';
+    }).join("");
+  }
+
+  function save(){
+    const record = {...state, createdAt:new Date().toISOString()};
+    const key = "bebegimin_cinsiyeti_full_form";
+    let list=[];
+    try{ list=JSON.parse(localStorage.getItem(key)||"[]"); if(!Array.isArray(list)) list=[]; }catch(e){list=[];}
+    list.push(record);
+    localStorage.setItem(key,JSON.stringify(list));
+    document.querySelector("#success-name").textContent = state.name || "";
+    document.querySelector("#success-gender").textContent = state.gender || "";
+    document.querySelector("#success-date").textContent = new Intl.DateTimeFormat("tr-TR",{dateStyle:"long",timeStyle:"short"}).format(new Date());
+    show("success");
+  }
+
+  document.addEventListener("click", e => {
+    const a = e.target.closest("[data-action]");
+    if(!a) return;
+    const action = a.dataset.action;
+    if(action==="start") show("identity");
+    if(action==="back"){
+      const i=order.indexOf(current);
+      if(i>0) show(order[i-1]);
     }
-
-    const predictionButton = event.target.closest("[data-prediction]");
-    if (predictionButton) {
-      state.prediction = predictionButton.dataset.prediction;
-      predictionError.textContent = "";
-      updatePredictionUI();
+    if(action==="submit") save();
+    if(action==="restart"){
+      document.querySelectorAll("form").forEach(f=>f.reset());
+      Object.keys(state).forEach(k=>delete state[k]);
+      show("intro");
     }
   });
-
-  identityForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const name = clean(document.querySelector("#name").value);
-    const relation = clean(document.querySelector("#relation").value);
-
-    if (!name || !relation) return;
-
-    state.name = name;
-    state.relation = relation;
-    showStep("prediction");
-  });
-
-  memoryForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const firstWord = clean(document.querySelector("#first-word").value);
-    if (!firstWord) return;
-
-    state.firstWord = firstWord;
-    state.todayNote = clean(document.querySelector("#today-note").value);
-    showStep("message");
-  });
-
-  messageForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    state.wish = clean(document.querySelector("#wish").value);
-    state.babyMessage = clean(document.querySelector("#baby-message").value);
-    state.funnyNote = clean(document.querySelector("#funny-note").value);
-
-    fillReview();
-    showStep("review");
-  });
-
-  updatePredictionUI();
 })();
