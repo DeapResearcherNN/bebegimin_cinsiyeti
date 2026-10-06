@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#fbf7f2">
+  <title>Bebeğimizin Cinsiyetini Tahmin Et</title>
+  <meta name="description" content="Ailemizin bebeğimiz için tahmin ve anı sayfası.">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Ana sayfa">
+        <span class="brand-mark" aria-hidden="true">♡</span>
+        <span>Aile Zaman Kapsülü</span>
+      </a>
+      <span class="private-pill">Özel aile sayfası</span>
+    </header>
+
+    <main class="main-card" id="app">
+      <section class="step is-active" data-step="intro" aria-labelledby="intro-title">
+        <div class="hero">
+          <div class="hero-orbit" aria-hidden="true">
+            <span class="bubble bubble-left">?</span>
+            <span class="heart">♡</span>
+            <span class="bubble bubble-right">?</span>
+          </div>
+
+          <p class="eyebrow">Küçük bir tahmin, ömürlük bir anı</p>
+          <h1 id="intro-title">Sence bebeğimiz kız mı, erkek mi?</h1>
+          <p class="lead">
+            Tahminini bırak. Bebeğimiz büyüdüğünde bugün hepimizin ne düşündüğünü ve ona neler yazdığımızı birlikte okuyalım.
+          </p>
+
+          <button class="button button-primary button-large" type="button" data-action="start">
+            Tahmine başla
+          </button>
+
+          <div class="live-note">
+            <span class="live-dot" aria-hidden="true"></span>
+            <div>
+              <strong>Canlı açıklama da burada olacak.</strong>
+              <p>Açıklama günü aynı bağlantıdan ailece görüntülü görüşmeye katılacağız.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" data-step="identity" aria-labelledby="identity-title">
+        <div class="step-top">
+          <button class="back-button" type="button" data-action="back" aria-label="Geri dön">←</button>
+          <div class="progress-wrap">
+            <span class="progress-label">1 / 4</span>
+            <div class="progress-track" aria-hidden="true"><span style="width:25%"></span></div>
+          </div>
+        </div>
+
+        <p class="eyebrow">Önce seni tanıyalım</p>
+        <h2 id="identity-title">Sen kimsin?</h2>
+
+        <form class="form-stack" id="identity-form">
+          <label class="field">
+            <span>Adın</span>
+            <input id="name" name="name" type="text" autocomplete="name" maxlength="60" placeholder="Örn. Ayşe" required>
+          </label>
+
+          <label class="field">
+            <span>Bebeğimizin nesi oluyorsun?</span>
+            <input id="relation" name="relation" type="text" maxlength="60" list="relation-options" placeholder="Örn. Teyzesi" required>
+            <datalist id="relation-options">
+              <option value="Anneannesi"></option>
+              <option value="Babaannesi"></option>
+              <option value="Dedesi"></option>
+              <option value="Teyzesi"></option>
+              <option value="Halası"></option>
+              <option value="Dayısı"></option>
+              <option value="Amcası"></option>
+              <option value="Kuzeni"></option>
+              <option value="Aile dostu"></option>
+            </datalist>
+          </label>
+
+          <button class="button button-primary" type="submit">Devam et</button>
+        </form>
+      </section>
+
+      <section class="step" data-step="prediction" aria-labelledby="prediction-title">
+        <div class="step-top">
+          <button class="back-button" type="button" data-action="back" aria-label="Geri dön">←</button>
+          <div class="progress-wrap">
+            <span class="progress-label">2 / 4</span>
+            <div class="progress-track" aria-hidden="true"><span style="width:50%"></span></div>
+          </div>
+        </div>
+
+        <p class="eyebrow">Büyük soru</p>
+        <h2 id="prediction-title">Sence bebeğimiz?</h2>
+        <p class="section-copy">İlk aklına gelen cevabı seç.</p>
+
+        <div class="prediction-grid" role="group" aria-label="Cinsiyet tahmini">
+          <button class="prediction-card prediction-girl" type="button" data-prediction="Kız" aria-pressed="false">
+            <span class="prediction-icon" aria-hidden="true">♡</span>
+            <strong>Kız</strong>
+          </button>
+
+          <button class="prediction-card prediction-boy" type="button" data-prediction="Erkek" aria-pressed="false">
+            <span class="prediction-icon" aria-hidden="true">☆</span>
+            <strong>Erkek</strong>
+          </button>
+        </div>
+
+        <p class="inline-error" id="prediction-error" role="alert"></p>
+
+        <button class="button button-primary" type="button" data-action="prediction-next" disabled>
+          Devam et
+        </button>
+      </section>
+
+      <section class="step" data-step="message" aria-labelledby="message-title">
+        <div class="step-top">
+          <button class="back-button" type="button" data-action="back" aria-label="Geri dön">←</button>
+          <div class="progress-wrap">
+            <span class="progress-label">3 / 4</span>
+            <div class="progress-track" aria-hidden="true"><span style="width:75%"></span></div>
+          </div>
+        </div>
+
+        <p class="eyebrow">Bir anı bırak</p>
+        <h2 id="message-title">Bebeğimize birkaç kelime</h2>
+        <p class="section-copy">İkisi de isteğe bağlı. İçinden ne geliyorsa yazabilirsin.</p>
+
+        <form class="form-stack" id="message-form">
+          <label class="field">
+            <span>Tahmininle ilgili kısa bir not</span>
+            <textarea id="note" name="note" rows="3" maxlength="280" placeholder="İstersen neden böyle hissettiğini yaz..."></textarea>
+          </label>
+
+          <label class="field">
+            <span>Bebeğimize mesajın <span class="soft-label">💌</span></span>
+            <textarea id="baby-message" name="babyMessage" rows="5" maxlength="1200" placeholder="Belki yıllar sonra bu mesajı okuyacak..."></textarea>
+          </label>
+
+          <button class="button button-primary" type="submit">Tahminimi kontrol et</button>
+        </form>
+      </section>
+
+      <section class="step" data-step="review" aria-labelledby="review-title">
+        <div class="step-top">
+          <button class="back-button" type="button" data-action="back" aria-label="Geri dön">←</button>
+          <div class="progress-wrap">
+            <span class="progress-label">4 / 4</span>
+            <div class="progress-track" aria-hidden="true"><span style="width:100%"></span></div>
+          </div>
+        </div>
+
+        <p class="eyebrow">Son kontrol</p>
+        <h2 id="review-title">Tahminini mühürleyelim mi?</h2>
+
+        <div class="review-card">
+          <div class="review-person">
+            <div class="avatar" id="review-avatar" aria-hidden="true">A</div>
+            <div>
+              <strong id="review-name">Ad</strong>
+              <span id="review-relation">Yakınlık</span>
+            </div>
+          </div>
+
+          <div class="review-prediction" id="review-prediction">Kız</div>
+
+          <div class="review-text" id="review-note-wrap">
+            <span>Kısa not</span>
+            <p id="review-note"></p>
+          </div>
+
+          <div class="review-text" id="review-message-wrap">
+            <span>Bebeğimize mesaj</span>
+            <p id="review-message"></p>
+          </div>
+        </div>
+
+        <button class="button button-primary button-large" type="button" data-action="submit">
+          Tahminimi mühürle
+        </button>
+        <p class="prototype-note">İlk taslakta kayıt yalnızca bu cihazda tutulur. Ortak kayıt sistemi bir sonraki aşamada bağlanacaktır.</p>
+      </section>
+
+      <section class="step" data-step="success" aria-labelledby="success-title">
+        <div class="success-wrap">
+          <div class="seal" aria-hidden="true">♡</div>
+          <p class="eyebrow">Kaydedildi</p>
+          <h2 id="success-title">Tahminin mühürlendi.</h2>
+          <p class="lead compact">
+            Teşekkür ederiz. Açıklama gününde yine aynı sayfada buluşacağız.
+          </p>
+
+          <div class="saved-ticket">
+            <span id="success-name">Ad</span>
+            <strong id="success-prediction">Kız</strong>
+            <small id="success-date"></small>
+          </div>
+
+          <button class="button button-secondary" type="button" data-action="restart">
+            Başa dön
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Bizim ailemiz için hazırlandı ♡</span>
+      <span>Arama motorlarında listelenmemesi istenmiştir.</span>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
