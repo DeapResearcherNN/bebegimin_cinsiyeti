@@ -1,13 +1,10 @@
 (() => {
   const state = {};
-  let current = "intro";
-
   const screens = [...document.querySelectorAll(".screen")];
   const form = document.querySelector("#family-form");
 
   function show(step){
     screens.forEach(s => s.classList.toggle("active", s.dataset.step === step));
-    current = step;
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
@@ -34,13 +31,13 @@
       name: state.name || "",
       relation: state.relation || "",
       gender: state.gender || "",
-      reason: state.reason || "",
+      firstGuess: state.firstGuess || "",
       photo: state.photo || "",
       media: state.media || "",
       createdAt: new Date().toISOString()
     };
 
-    const key = "bebegimin_cinsiyeti_google_form_v1";
+    const key = "bebegimin_cinsiyeti_form_v2";
     let list = [];
 
     try{
