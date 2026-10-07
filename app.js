@@ -535,6 +535,79 @@
     });
   }
 
+  function verifyPublicMirrorReceipt(requestId) {
+    return new Promise((resolve,reject) => {
+      const sheetId = window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.publicSheetId;
+      if (!sheetId) return reject(new Error("Anonim kontrol tablosu yapılandırılmadı."));
+
+      const callback = "__baby_sheet_receipt_" + Date.now() + "_" +
+        Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      const url = new URL("https://docs.google.com/spreadsheets/d/" + encodeURIComponent(sheetId) + "/gviz/tq");
+      url.searchParams.set("sheet","Veri");
+      url.searchParams.set("tq","select K where K is not null");
+      url.searchParams.set("tqx","out:json;responseHandler:" + callback);
+      url.searchParams.set("_",String(Date.now()));
+      let settled = false;
+      const timer=setTimeout(()=>{
+        cleanup();
+        reject(new Error("Anonim kayıt kontrolü yanıt vermedi."));
+      },6500);
+
+      function cleanup(){
+        if(settled) return;
+        settled=true;
+        clearTimeout(timer);
+        delete window[callback];
+        script.remove();
+      }
+      window[callback]=data=>{
+        cleanup();
+        if(data && data.status==="ok" && data.table && Array.isArray(data.table.rows)){
+          const saved = data.table.rows.some(row =>
+            row.c && row.c.some(cell => cell && String(cell.v)===requestId)
+          );
+          resolve({ok:true,saved,verifiedByPublicMirror:true});
+        } else {
+          reject(new Error("Anonim kayıt kontrolü okunamadı."));
+        }
+      };
+      script.onerror=()=>{
+        cleanup();
+        reject(new Error("Anonim kayıt kontrolü açılamadı."));
+      };
+      script.src=url.toString();
+      document.head.append(script);
+    });
+  }
+
+  async function verifyReceiptByAnySource(requestId) {
+    // A random receipt ID is safe to expose in the anonymized feed.
+    // Neither mechanism transmits names or uploaded file content via GET.
+    const check=source => source(requestId).then(result => {
+      if(result && result.ok && result.saved) return result;
+      throw new Error("Kaydın oluşması bekleniyor.");
+    });
+    return Promise.any([
+      check(verifyPublicMirrorReceipt),
+      check(verifySavedReceipt)
+    ]);
+  }
+
+  function postWithoutCors(fields,requestId){
+    // Omit Google account cookies to avoid third-party login redirects.
+    // The response is intentionally opaque; receipt polling verifies success.
+    const body=new URLSearchParams({...fields,requestId});
+    return fetch(apiUrl,{
+      method:"POST",
+      mode:"no-cors",
+      credentials:"omit",
+      redirect:"follow",
+      headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
+      body:body.toString()
+    });
+  }
+
   function sendWithReceipt(fields, requestId, hasMedia) {
     return new Promise((resolve,reject) => {
       let finished = false;
