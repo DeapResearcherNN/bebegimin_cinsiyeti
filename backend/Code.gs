@@ -22,6 +22,8 @@ function doGet(e) {
       // No admin token required. This route never returns real names, free text,
       // upload links, file IDs, participant IDs or exact submission timestamps.
       result = getPublicResults_();
+    } else if (action === 'submissionReceipt') {
+      result = submissionReceipt_(p);
     } else {
       throw new Error('Bilinmeyen işlem.');
     }
@@ -205,6 +207,43 @@ function submitResponse_(p) {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+function validReceiptId_(value) {
+  return /^req_[A-Za-z0-9_-]{18,100}$/.test(String(value || '').trim());
+}
+
+function findReceipt_(responsesSheet, requestId) {
+  if (!validReceiptId_(requestId)) return null;
+  const lastRow = responsesSheet.getLastRow();
+  if (lastRow < 2) return null;
+  const refs = responsesSheet.getRange(2,14,lastRow-1,1).getDisplayValues();
+  for (let i=refs.length-1;i>=0;i--) {
+    if (refs[i][0] !== requestId) continue;
+    const row=responsesSheet.getRange(i+2,1,1,14).getValues()[0];
+    const time=row[11] instanceof Date ? row[11].toISOString() : String(row[11] || '');
+    return {recordId:String(row[0]),submittedAt:time};
+  }
+  return null;
+}
+
+function submissionReceipt_(p) {
+  const requestId=String(p.requestId || '').trim();
+  if (!validReceiptId_(requestId)) throw new Error('Gecersiz kayit kontrol anahtari.');
+
+  try {
+    const cached=CacheService.getScriptCache().get('baby:receipt:'+requestId);
+    if (cached) return {ok:true,saved:true,submittedAt:cached};
+  } catch (err) {
+    console.error('Onbellek okunamadi: '+String(err));
+  }
+
+  const sheet=SpreadsheetApp.openById(APP.SHEET_ID).getSheetByName('Cevaplar');
+  const record=findReceipt_(sheet,requestId);
+  return record
+    ? {ok:true,saved:true,submittedAt:record.submittedAt}
+    : {ok:true,saved:false};
 }
 
 function getStatus_(p) {
