@@ -56,6 +56,7 @@
   let clockTimer = null;
   let recordLimitTimer = null;
   let cameraReady = false;
+  let lastSubmission = null;
 
   function show(step) {
     if (step !== "form") closeCamera();
@@ -221,7 +222,7 @@
   }
 
   async function obtainCamera(mode, facing) {
-    const video = {facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}};
+    const video = {facingMode:{ideal:facing},width:{ideal:mode === "video" ? 960 : 1280},height:{ideal:mode === "video" ? 540 : 720}};
     if (mode === "photo") return {stream:await navigator.mediaDevices.getUserMedia({video,audio:false}), hasAudio:false};
     try {
       return {stream:await navigator.mediaDevices.getUserMedia({
@@ -338,7 +339,7 @@
     let recorder;
     try {
       const mimeType = mimePreference();
-      const settings = {videoBitsPerSecond:1000000,audioBitsPerSecond:96000};
+      const settings = {videoBitsPerSecond:700000,audioBitsPerSecond:64000};
       if (mimeType) settings.mimeType = mimeType;
       recorder = new MediaRecorder(cameraStream,settings);
     } catch (error) {
@@ -588,10 +589,9 @@
     });
   }
 
-  function postToBackend(fields) {
+  function postToBackend(fields, requestId) {
     return new Promise((resolve,reject)=>{
       if (!apiUrl) return reject(new Error("Google Drive kayıt sistemi henüz etkinleştirilmedi."));
-      const requestId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2);
       const postForm = document.createElement("form");
       postForm.method = "POST";
       postForm.action = apiUrl;
@@ -610,14 +610,18 @@
       const timer = setTimeout(()=>{
         cleanup();
         reject(new Error("Kayıt sunucusu zamanında yanıt vermedi. Bağlantıyı kontrol edip tekrar dene."));
-      },90000);
+      },70000);
 
       function onMessage(event) {
         const data = event.data;
         if (!data || data.source !== "baby-form-api" || data.requestId !== requestId) return;
         cleanup();
         if (data.ok) resolve(data);
-        else reject(new Error(data.error || "Kayıt başarısız."));
+        else {
+          const error = new Error(data.error || "Kayıt başarısız.");
+          error.serverResponse = true;
+          reject(error);
+        }
       }
       function cleanup() {
         if (resolved) return;
