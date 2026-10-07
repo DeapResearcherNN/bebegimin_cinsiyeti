@@ -41,6 +41,12 @@
             <p>Lütfen formu birbirinizin cevaplarına bakmadan doldurun. Cinsiyet açıklanana kadar cevaplar gizli kalacak. 🤫</p>
           </div>
 
+          <div class="family-access">
+            <label for="family-code">Aile şifresi</label>
+            <input id="family-code" type="password" autocomplete="off" placeholder="Size gönderilen aile şifresi">
+            <p id="access-status" class="form-status"></p>
+          </div>
+
           <button class="primary large" type="button" data-action="start">
             Formu doldur <span>→</span>
           </button>
@@ -149,7 +155,7 @@
                   Bu fotoğraf yıllar sonra bebeğimize gösterilecek. ❤️
                 </p>
                 <input class="file-input" name="photo" type="file" accept="image/*">
-                <small class="tech-note">Şimdilik deneme sürümünde dosyanın kendisi sunucuya yüklenmiyor; yalnızca seçildiği görülüyor.</small>
+                <small class="tech-note">Gönderildiğinde özel Google Drive arşivine kaydedilecek.</small>
               </div>
             </label>
 
@@ -162,7 +168,7 @@
                   Büyüdüğünde bu videoyu izliyorsan seni çok uzun zamandır beklediğimizi bil.”
                 </p>
                 <input class="file-input" name="media" type="file" accept="audio/*,video/*">
-                <small class="tech-note">Şimdilik deneme sürümünde dosyanın kendisi sunucuya yüklenmiyor; yalnızca seçildiği görülüyor.</small>
+                <small class="tech-note">Gönderildiğinde özel Google Drive arşivine kaydedilecek.</small>
               </div>
             </label>
 
@@ -181,8 +187,9 @@
           </section>
 
           <div class="submit-box">
-            <p>Zorunlu alanları doldurduysan tahminini kaydedebilirsin.</p>
-            <button class="primary" type="submit">Tahminimi kaydet ♡</button>
+            <p><strong>Gönderdikten sonra cevaplarını değiştiremeyeceksin.</strong> Zorunlu alanları kontrol edip gönder.</p>
+            <button id="submit-button" class="primary" type="submit">Tahminimi kaydet ♡</button>
+            <p id="submit-status" class="form-status"></p>
           </div>
         </form>
       </section>
@@ -216,6 +223,8 @@
     <footer>Bu sayfa aile hatırası için hazırlanmıştır.</footer>
   </div>
 
+  <iframe id="api-frame" name="api-frame" hidden></iframe>
+  <script src="./config.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
