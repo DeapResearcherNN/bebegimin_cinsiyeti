@@ -2,6 +2,7 @@
   "use strict";
 
   const apiUrl = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.apiUrl) || "";
+  const publicSheetId = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.publicSheetId) || "";
   const REFRESH_MS = 60000;
   let responses = [];
   let participants = [];
@@ -272,7 +273,7 @@
     $("#empty-state-description").textContent = "Başka bir filtre seçebilirsin.";
   }
 
-  function fetchPublicResults() {
+  function fetchAppsScriptResults() {
     return new Promise((resolve,reject) => {
       if(!apiUrl) return reject(new Error(
         "Google kayıt sistemi bağlantısı henüz yapılandırılmamış."
@@ -324,6 +325,103 @@
       script.src=url.toString();
       document.head.append(script);
     });
+  }
+
+
+  function fetchPublicSheetResults() {
+    return new Promise((resolve,reject) => {
+      if(!publicSheetId) return reject(new Error("Anonim sonuç tablosu tanımlı değil."));
+      const cb="__baby_sheets_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+      const script=document.createElement("script");
+      const url=new URL("https://docs.google.com/spreadsheets/d/"+encodeURIComponent(publicSheetId)+"/gviz/tq");
+      url.searchParams.set("sheet","Veri");
+      url.searchParams.set("headers","1");
+      url.searchParams.set("tq","select A,B,C,D,E,F,G,H,I,J where A is not null");
+      url.searchParams.set("tqx","out:json;responseHandler:"+cb);
+      url.searchParams.set("_",String(Date.now()));
+
+      let settled=false;
+      const timer=setTimeout(()=>{
+        cleanup();
+        reject(new Error("Anonim Google tablosu zamanında yanıt vermedi."));
+      },12000);
+
+      function cleanup() {
+        if(settled) return;
+        settled=true;
+        clearTimeout(timer);
+        delete window[cb];
+        script.remove();
+      }
+
+      window[cb]=value => {
+        cleanup();
+        if(!value || value.status !== "ok" || !value.table || !Array.isArray(value.table.rows)) {
+          reject(new Error("Anonim sonuç tablosuna erişilemiyor. Paylaşım ve tablolar arası bağlantı iznini kontrol et."));
+          return;
+        }
+        const columns = row => (row.c||[]).map(cell=>cell && cell.v != null ? cell.v : "");
+        const dataRows=value.table.rows.map(columns).filter(row=>{
+          const label=String(row[0] || "").trim();
+          return label && label !== "Anonim etiket" && !label.startsWith("#");
+        });
+        if(!dataRows.length){
+          reject(new Error("Anonim sonuç tablosu henüz bağlanmadı. Google Sheets'teki Erişime izin ver işlemini tamamla."));
+          return;
+        }
+
+        const isTrue=x=>x===true || String(x).trim().toUpperCase()==="TRUE" || x===1;
+        const responses=dataRows.map(row=>({
+          name:String(row[0]||""),
+          relation:String(row[1]||"Aile / arkadaş"),
+          gender:String(row[2]||""),
+          firstGuess:String(row[3]||""),
+          hasNote:isTrue(row[4]),
+          hasPhoto:isTrue(row[5]),
+          hasMedia:isTrue(row[6]),
+          isTest:isTrue(row[7]),
+          sequence:Number(row[8])||0,
+          shortNote:"",photoUrl:"",mediaUrl:"",submittedAt:""
+        }));
+        const overallCount=Number(dataRows[0][9]);
+        const participantTotal=Number.isFinite(overallCount)
+          ? Math.max(responses.length,overallCount) : responses.length;
+        const participants=responses.map(r=>({
+          name:r.name,relation:r.relation,answered:true,isTest:r.isTest
+        }));
+        for(let i=participants.length;i<participantTotal;i++){
+          participants.push({
+            name:"Katılımcı "+(i+1),relation:"Aile / arkadaş",answered:false,isTest:false
+          });
+        }
+        resolve({
+          ok:true,publicVersion:"anonymous-v1",source:"google-sheets",
+          responses,participants
+        });
+      };
+
+      script.onerror=()=>{
+        cleanup();
+        reject(new Error("Anonim Google tablosu bağlantısı açılamadı. Paylaşım ayarını kontrol et."));
+      };
+      script.src=url.toString();
+      document.head.append(script);
+    });
+  }
+
+  async function fetchPublicResults() {
+    // Both requests are read-only and return only sanitized public data.
+    // The independent Google Sheets connection also works when Google's
+    // Apps Script web apps fail in multi-account Chrome sessions.
+    try {
+      return await Promise.any([fetchPublicSheetResults(),fetchAppsScriptResults()]);
+    } catch(error) {
+      throw new Error(
+        "Her iki sonuç bağlantısı da yanıt vermedi. Anonim sonuç tablosunun " +
+        "'Erişime izin ver' ve 'Bağlantıya sahip herkes: Görüntüleyici' " +
+        "ayarları tamamlanmalı."
+      );
+    }
   }
 
   async function refreshResults() {
