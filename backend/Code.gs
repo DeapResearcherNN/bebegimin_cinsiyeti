@@ -301,6 +301,7 @@ function getPublicResults_() {
 
   let realSequence = 0;
   let testSequence = 0;
+  let publicSequence = 0;
 
   const acceptedFirstGuesses = [
     'İlk andan beri kız',
@@ -323,6 +324,7 @@ function getPublicResults_() {
 
     return {
       name: displayName,
+      sequence: ++publicSequence,
       relation: test ? 'Deneme (TEST)' : publicRelationCategory_(row[3]),
       gender: gender,
       firstGuess: acceptedFirstGuesses.indexOf(first) >= 0 ? first : 'Belirtilmedi',
