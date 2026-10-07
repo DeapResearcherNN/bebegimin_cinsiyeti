@@ -233,3 +233,6 @@ html,body{max-width:100%;overflow-x:hidden}
   opacity:.65;
   cursor:wait;
 }
+
+.admin-diagnostic{margin:8px 0 0;text-align:center;font-size:11px}
+.admin-diagnostic a{color:var(--accent-dark);text-decoration:underline;font-weight:700}
