@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#fbf7f3">
   <title>👶 Bebeğimiz İçin Aile Tahminleri</title>
   <meta name="description" content="Bebeğimiz için aile tahminleri ve küçük hatıralar.">
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=4">
 </head>
 <body>
   <div class="page">
@@ -100,34 +100,12 @@
               </div>
             </fieldset>
 
-            <fieldset class="question required">
+            <fieldset class="question required" id="first-guess-question" hidden>
               <span class="number">6</span>
               <div class="question-body">
-                <legend>İlk öğrendiğinde içinden geçen tahmin neydi? <b class="req">*</b></legend>
-                <p class="helper">Yalnızca bir şıkkı işaretleyin.</p>
-
-                <div class="choice-list">
-                  <label class="choice">
-                    <input type="radio" name="firstGuess" value="İlk andan beri kız" required>
-                    <span>İlk andan beri kız</span>
-                  </label>
-                  <label class="choice">
-                    <input type="radio" name="firstGuess" value="İlk andan beri erkek">
-                    <span>İlk andan beri erkek</span>
-                  </label>
-                  <label class="choice">
-                    <input type="radio" name="firstGuess" value="Önce kız düşündüm, sonra fikrim değişti">
-                    <span>Önce kız düşündüm, sonra fikrim değişti</span>
-                  </label>
-                  <label class="choice">
-                    <input type="radio" name="firstGuess" value="Önce erkek düşündüm, sonra fikrim değişti">
-                    <span>Önce erkek düşündüm, sonra fikrim değişti</span>
-                  </label>
-                  <label class="choice">
-                    <input type="radio" name="firstGuess" value="Hiç tahminim olmadı">
-                    <span>Hiç tahminim olmadı</span>
-                  </label>
-                </div>
+                <legend id="first-guess-title">İlk öğrendiğinde içinden geçen tahmin neydi? <b class="req">*</b></legend>
+                <p class="helper" id="first-guess-help">Seçtiğin cevaba göre seçenekler burada görünecek.</p>
+                <div class="choice-list" id="first-guess-options"></div>
               </div>
             </fieldset>
           </section>
@@ -138,31 +116,72 @@
               <span class="optional-badge">Zorunlu değil</span>
             </div>
 
-            <label class="question optional">
+            <div class="question optional">
               <span class="number">25</span>
               <div class="question-body">
-                <span class="label">Bebeğimize bugünden bir fotoğraf bırakmak ister misin?</span>
-                <p class="helper strong-helper">
-                  İstersen kendi fotoğrafını, aile fotoğrafını veya üzerinde “Kız” / “Erkek” tahmininin yazdığı bir fotoğraf yükleyebilirsin.
-                  Bu fotoğraf yıllar sonra bebeğimize gösterilecek. ❤️
-                </p>
-                <input class="file-input" name="photo" type="file" accept="image/*">
-                <small class="tech-note">Gönderildiğinde özel Google Drive arşivine kaydedilecek.</small>
+                <span class="label">Bebeğimize bir fotoğraf bırakmak ister misin?</span>
+                <p class="helper strong-helper">Fotoğraf yükleyebilir veya kameranı açıp şimdi çekebilirsin. ❤️</p>
+                <div class="upload-options">
+                  <label for="photo-upload" class="upload-action">📁 Fotoğraf yükle</label>
+                  <button type="button" class="upload-action upload-action-camera" id="open-photo-camera">📷 Fotoğraf çek</button>
+                </div>
+                <input class="visually-hidden" id="photo-upload" name="photo" type="file" accept="image/*">
+                <input id="native-photo-input" name="nativePhoto" type="file" accept="image/*" capture="environment" hidden>
+                <div class="chosen-preview" id="photo-result" hidden>
+                  <img class="photo-preview" id="photo-preview" alt="Seçtiğin fotoğrafın önizlemesi">
+                  <div class="chosen-file-info">
+                    <strong id="photo-file-name"></strong>
+                    <button type="button" class="remove-file" id="remove-photo">Fotoğrafı kaldır</button>
+                  </div>
+                </div>
+                <small class="tech-note">İsteğe bağlı · En fazla 8 MB · Fotoğraf özel arşive kaydedilir.</small>
               </div>
-            </label>
+            </div>
 
-            <label class="question optional">
+            <div class="question optional">
               <span class="number">26</span>
               <div class="question-body">
-                <span class="label">Bebeğimiz için kısa bir video veya sesli mesaj bırakmak ister misin?</span>
-                <p class="helper strong-helper">
-                  İstersen kısa bir video çekebilirsin. Örneğin: “Bugün seni henüz görmedik. Ben senin kız/erkek olduğunu düşünüyorum.
-                  Büyüdüğünde bu videoyu izliyorsan seni çok uzun zamandır beklediğimizi bil.”
-                </p>
-                <input class="file-input" name="media" type="file" accept="audio/*,video/*">
-                <small class="tech-note">Gönderildiğinde özel Google Drive arşivine kaydedilecek.</small>
+                <span class="label">Bebeğimize kısa bir video veya sesli mesaj bırakmak ister misin?</span>
+                <p class="helper strong-helper">Video ya da ses dosyası yükle veya kameranı açıp kısa bir video kaydet.</p>
+                <div class="upload-options">
+                  <label for="media-upload" class="upload-action">📁 Video / ses yükle</label>
+                  <button type="button" class="upload-action upload-action-camera" id="open-video-camera">🎬 Video kaydet</button>
+                </div>
+                <input class="visually-hidden" id="media-upload" name="media" type="file" accept="audio/*,video/*">
+                <input id="native-video-input" name="nativeVideo" type="file" accept="video/*" capture="user" hidden>
+                <div class="chosen-preview" id="media-result" hidden>
+                  <video id="media-preview" class="media-preview" controls playsinline preload="metadata" hidden></video>
+                  <audio id="audio-preview" controls preload="metadata" hidden></audio>
+                  <div class="chosen-file-info">
+                    <strong id="media-file-name"></strong>
+                    <button type="button" class="remove-file" id="remove-media">Video / sesi kaldır</button>
+                  </div>
+                </div>
+                <small class="tech-note">İsteğe bağlı · En fazla 20 MB · Kameradan kayıt en fazla 30 saniye.</small>
               </div>
-            </label>
+            </div>
+
+            <section class="camera-studio" id="camera-studio" hidden aria-label="Kamera ile kayıt">
+              <div class="camera-studio-head">
+                <div>
+                  <span class="section-kicker">📸 KAMERA</span>
+                  <h3 id="camera-title">Fotoğraf çek</h3>
+                </div>
+                <button type="button" class="camera-close" id="close-camera" aria-label="Kamerayı kapat">✕</button>
+              </div>
+              <div class="camera-view">
+                <video id="camera-live" autoplay muted playsinline aria-label="Canlı kamera görüntüsü"></video>
+                <span class="record-indicator" id="record-indicator" hidden>● KAYITTA <span id="record-clock">00:00</span></span>
+              </div>
+              <div class="camera-actions">
+                <button type="button" class="camera-primary" id="capture-photo-btn" hidden>📸 Fotoğrafı çek</button>
+                <button type="button" class="camera-primary" id="start-video-btn" hidden>🔴 Kaydı başlat</button>
+                <button type="button" class="camera-primary recording-button" id="stop-video-btn" hidden>■ Kaydı bitir</button>
+                <button type="button" class="camera-secondary" id="switch-camera-btn">↻ Kamerayı çevir</button>
+                <button type="button" class="camera-secondary" id="native-camera-option">📱 Telefon kamerasını kullan</button>
+              </div>
+              <p class="camera-message" id="camera-message" role="status" aria-live="polite"></p>
+            </section>
 
             <label class="question optional text-note-option">
               <span class="number">✎</span>
@@ -217,6 +236,6 @@
 
   <iframe id="api-frame" name="api-frame" hidden></iframe>
   <script src="./config.js"></script>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=4"></script>
 </body>
 </html>
