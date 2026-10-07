@@ -34,6 +34,7 @@
       firstGuess: state.firstGuess || "",
       photo: state.photo || "",
       media: state.media || "",
+      shortNote: state.shortNote || "",
       createdAt: new Date().toISOString()
     };
 
