@@ -1,0 +1,25 @@
+name: Temporary Baby API Check
+on:
+  push:
+    paths:
+      - '.github/workflows/check-baby-api.yml'
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check anonymous web application responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://script.google.com/macros/s/AKfycbyG4isdL2l9jQZiag6NOfKxlnBSOq9CUfyTc6fnEzOteqtWX0vbhtMKHv9nIhfKgeo-/exec'
+          echo "Checking anonymous health endpoint"
+          curl -L --retry 1 --max-time 25 -fsS "$BASE?action=health&callback=checkHealth" -o /tmp/health
+          head -c 240 /tmp/health; echo
+          grep -q 'baby-family-api' /tmp/health
+          echo "Checking public read-only results"
+          curl -L --retry 1 --max-time 25 -fsS "$BASE?action=publicResults&callback=checkResults" -o /tmp/results
+          head -c 240 /tmp/results; echo
+          grep -q 'anonymous-v1' /tmp/results
+          echo "Anonymous API reachable"
