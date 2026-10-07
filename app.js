@@ -599,6 +599,14 @@
         mediaData:media.data
       });
 
+      // Notify any already-authorized results tab in the same browser.
+      // This contains only a timestamp, never a name, answer or access token.
+      try {
+        localStorage.setItem("baby_results_changed_at", String(Date.now()));
+      } catch (ignored) {
+        // Storage can be unavailable in private or restricted browsers.
+      }
+
       document.querySelector("#success-name").textContent = data.get("name") || "";
       document.querySelector("#success-gender").textContent = data.get("gender") || "";
       document.querySelector("#success-date").textContent =
