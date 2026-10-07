@@ -56,9 +56,10 @@ function doPost(e) {
       throw new Error('Bilinmeyen işlem.');
     }
 
+    if (p.requestId) result.requestId = p.requestId;
     return postMessage_(result);
   } catch (err) {
-    return postMessage_({ ok: false, error: String(err.message || err) });
+    return postMessage_({ ok: false, error: String(err.message || err), requestId: p.requestId || '' });
   }
 }
 
