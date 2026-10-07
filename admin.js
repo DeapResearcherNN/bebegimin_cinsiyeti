@@ -13,11 +13,20 @@
   const participantList = document.querySelector("#participant-list");
   const responseBody = document.querySelector("#response-body");
   const settingsStatus = document.querySelector("#settings-status");
+  const serviceTestLink = document.querySelector("#service-test-link");
+  if (serviceTestLink && apiUrl) {
+    const test = new URL(apiUrl);
+    test.searchParams.set("action", "health");
+    test.searchParams.set("callback", "siteTest");
+    serviceTestLink.href = test.toString();
+    serviceTestLink.hidden = false;
+  }
+
 
   let adminToken = sessionStorage.getItem(SESSION_KEY) || "";
   let requestedEmail = "";
 
-  function checkDeployment() {
+  function checkDeploymentOnce() {
     return new Promise((resolve, reject) => {
       if (!apiUrl) {
         reject(new Error("Google kayıt sisteminin bağlantı adresi bulunamadı."));
@@ -66,6 +75,27 @@
       script.src = url.toString();
       document.head.appendChild(script);
     });
+  }
+
+
+  // Google's Content Service can occasionally fail while redirecting
+  // its response; retry transient script-load errors before reporting a failure.
+  async function checkDeployment() {
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 1400 : 2600));
+      }
+      try {
+        return await checkDeploymentOnce();
+      } catch (error) {
+        lastError = error;
+        if (/sürümü eski|bağlantı adresi bulunamadı/i.test(error.message)) {
+          throw error;
+        }
+      }
+    }
+    throw lastError || new Error("Google Apps Script bağlantısı kurulamadı.");
   }
 
   function postAction(fields) {
