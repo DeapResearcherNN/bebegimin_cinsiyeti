@@ -52,8 +52,8 @@
 
       <section class="sample-banner" id="sample-banner" aria-label="Örnek veriler">
         <div class="sample-banner-text">
-          <strong>Şu an örnek sonuçları görüyorsun.</strong>
-          <span>Buradaki üç kişi tamamen uydurma. Gerçek aile cevapları bu sayfanın açık kodunda bulunmuyor.</span>
+          <strong>Gerçek sonuçlar henüz açılmadı.</strong>
+          <span>Aile cevapları gizli tutuluyor. Gerçek istatistikleri ve kişi kişi cevapları görmek için yetkili oturum aç.</span>
         </div>
         <button type="button" class="button button-dark" id="open-access">Gerçek sonuçları aç <span aria-hidden="true">→</span></button>
       </section>
@@ -63,7 +63,8 @@
           <div>
             <div class="eyebrow">ÖZEL AİLE KAYITLARI</div>
             <h2 id="access-title">Gerçek sonuçlara eriş</h2>
-            <p>Google Drive'daki özel cevaplar yalnızca Naime ve Serhan'a açık. Ayrıca bir admin şifresi yok; erişimi tek kullanımlık e-posta koduyla doğruluyoruz.</p>
+            <p>Özel aile cevapları yalnızca yetkili hesaplardan görüntülenebilir. Daha önce bu sekmede yönetici girişi yaptıysan sonuçlar otomatik yüklenir. Alternatif olarak Google hesabınla sonuç tablosunu doğrudan açabilirsin.</p>
+            <p><a href="https://docs.google.com/spreadsheets/d/1Tgrd_sU1aOu9NKpFsv8_iM8Hh2rBifHbIqFSlDI5Cys/edit#gid=625001" target="_blank" rel="noopener noreferrer">Google hesabınla canlı sonuçları aç ↗</a></p>
           </div>
           <button type="button" class="icon-button" id="close-access" aria-label="Kapat">✕</button>
         </div>
@@ -165,7 +166,7 @@
           <label class="check-label"><input type="checkbox" id="hide-tests"><span>Testleri gizle</span></label>
         </div>
         <div id="response-grid" class="response-grid" aria-live="polite"></div>
-        <div id="empty-state" class="empty-state" hidden><div>♡</div><strong>Bu filtreye uygun yanıt yok.</strong><p>Başka bir isim veya tahmin seçebilirsin.</p></div>
+        <div id="empty-state" class="empty-state" hidden><div>♡</div><strong id="empty-state-title">Henüz görüntülenecek yanıt yok.</strong><p id="empty-state-description">Sonuçlar yüklenince burada görünecek.</p></div>
       </section>
 
       <footer>
@@ -176,6 +177,6 @@
   </div>
   <iframe id="results-frame" name="results-frame" hidden title="Güvenli kayıt bağlantısı"></iframe>
   <script src="./config.js"></script>
-  <script src="./sonuclar.js?v=3"></script>
+  <script src="./sonuclar.js?v=4"></script>
 </body>
 </html>
