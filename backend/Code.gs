@@ -98,6 +98,7 @@ function submitResponse_(p) {
   const gender = clean_(p.gender);
   const firstGuess = clean_(p.firstGuess);
   const shortNote = clean_(p.shortNote);
+  const requestId = validReceiptId_(p.requestId) ? String(p.requestId).trim() : '';
 
   if (!name || !relation || !gender || !firstGuess) {
     throw new Error('Zorunlu alanlardan biri eksik.');
@@ -110,6 +111,18 @@ function submitResponse_(p) {
     const ss = SpreadsheetApp.openById(APP.SHEET_ID);
     const participantsSheet = ss.getSheetByName('Katılımcılar');
     const responsesSheet = ss.getSheetByName('Cevaplar');
+
+    // Reusing the same request ID is safe even if the browser missed a reply.
+    if (requestId) {
+      const previouslySaved = findReceipt_(responsesSheet,requestId);
+      if (previouslySaved) {
+        return {
+          ok:true, recordId:previouslySaved.recordId,
+          submittedAt:previouslySaved.submittedAt,
+          message:'Tahminin daha once kaydedildi.'
+        };
+      }
+    }
 
     let participant = findParticipant_(participantsSheet, name, relation);
     const listRequired = String(settings.KATILIMCI_LISTESI_ZORUNLU).toUpperCase() === 'TRUE';
@@ -168,8 +181,23 @@ function submitResponse_(p) {
       media.id || '',
       media.url || '',
       submittedAt,
-      true
+      true,
+      requestId
     ]);
+
+    // The reply is durable now; an independent receipt check can finish
+    // while auxiliary Drive backups and email notifications are running.
+    if (requestId) {
+      try {
+        CacheService.getScriptCache().put(
+          'baby:receipt:' + requestId,
+          submittedAt.toISOString(),
+          21600
+        );
+      } catch (cacheError) {
+        console.error('Onbellek kullanilamadi: ' + String(cacheError));
+      }
+    }
 
     participantsSheet.getRange(participant.row, 5, 1, 2)
       .setValues([[true, submittedAt]]);
