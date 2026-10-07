@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Admin | Bebeğimiz İçin Aile Tahminleri</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="./"><span class="brand-icon">♡</span><span><strong>Naime &amp; Serhan</strong><small>Admin</small></span></a>
+      <a class="admin-back" href="./">Aile sayfasına dön</a>
+    </header>
+
+    <main class="shell admin-shell">
+      <section id="admin-login" class="admin-login">
+        <p class="eyebrow">YÖNETİCİ GİRİŞİ</p>
+        <h1>Admin paneli</h1>
+        <p class="admin-copy">Cevapları, dosyaları ve katılımcı durumlarını yalnızca doğru admin şifresiyle görüntüleyebilirsin.</p>
+
+        <form id="login-form" class="admin-form">
+          <label>
+            <span>Admin şifresi</span>
+            <input id="admin-password" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="primary" type="submit">Giriş yap</button>
+        </form>
+        <p id="login-status" class="admin-status"></p>
+      </section>
+
+      <section id="dashboard" class="dashboard" hidden>
+        <div class="admin-heading">
+          <div>
+            <p class="eyebrow">YÖNETİM PANELİ</p>
+            <h2>Aile cevapları</h2>
+          </div>
+          <div class="admin-actions">
+            <a id="sheet-link" class="secondary admin-link" href="#" target="_blank" rel="noopener">Google Sheet'i aç</a>
+            <button id="refresh-btn" class="secondary" type="button">Yenile</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <article><span>Toplam cevap</span><strong id="stat-total">0</strong></article>
+          <article><span>👧 Kız</span><strong id="stat-girl">0</strong></article>
+          <article><span>👦 Erkek</span><strong id="stat-boy">0</strong></article>
+          <article><span>Bekleyen</span><strong id="stat-pending">0</strong></article>
+        </div>
+
+        <section class="admin-card">
+          <div class="admin-card-head">
+            <div><h3>Katılımcılar</h3><p>İstersen 15 kişiyi önceden buraya ekle.</p></div>
+          </div>
+          <form id="participant-form" class="participant-form">
+            <input name="name" type="text" placeholder="Ad soyad" required>
+            <input name="relation" type="text" placeholder="Yakınlık" required>
+            <button class="primary" type="submit">Katılımcı ekle</button>
+          </form>
+          <div id="participant-list" class="participant-list"></div>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-card-head">
+            <div><h3>Form ayarları</h3><p>Kayıtları aç/kapat ve katılımcı listesini zorunlu yap.</p></div>
+          </div>
+          <div class="setting-grid">
+            <button class="secondary setting-btn" data-key="FORM_ACIK" data-value="TRUE">Formu aç</button>
+            <button class="secondary setting-btn" data-key="FORM_ACIK" data-value="FALSE">Formu kapat</button>
+            <button class="secondary setting-btn" data-key="KATILIMCI_LISTESI_ZORUNLU" data-value="TRUE">Sadece listedekiler</button>
+            <button class="secondary setting-btn" data-key="KATILIMCI_LISTESI_ZORUNLU" data-value="FALSE">Liste zorunlu olmasın</button>
+          </div>
+          <p id="settings-status" class="admin-status"></p>
+        </section>
+
+        <section class="admin-card">
+          <div class="admin-card-head">
+            <div><h3>Gönderilen cevaplar</h3><p>Cevaplar kullanıcı tarafından değiştirilemez.</p></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ad</th><th>Yakınlık</th><th>Tahmin</th><th>İlk tahmin</th><th>Kısa yazı</th><th>Fotoğraf</th><th>Video/Ses</th><th>Zaman</th>
+                </tr>
+              </thead>
+              <tbody id="response-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <iframe id="api-frame" name="api-frame" hidden></iframe>
+  <script src="./config.js"></script>
+  <script src="./admin.js"></script>
+</body>
+</html>
