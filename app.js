@@ -608,59 +608,73 @@
     });
   }
 
-  function sendWithReceipt(fields, requestId, hasMedia) {
-    return new Promise((resolve,reject) => {
-      let finished = false;
-      let polling = false;
-      let receiptSupported = true;
-      const maxWait = hasMedia ? 65000 : 42000;
-      const pollEvery = 3500;
+  function sendWithReceipt(fields,requestId,hasMedia){
+    return new Promise((resolve,reject)=>{
+      let finished=false;
+      let polling=false;
+      let iframeStarted=false;
+      const maxWait=fields.mediaData ? 55000 : fields.photoData ? 36000 : 24000;
 
       function cleanup() {
         clearTimeout(timeout);
         clearInterval(checker);
+        clearTimeout(backupTimer);
       }
       function success(result) {
         if(finished) return;
-        finished = true;
+        finished=true;
         cleanup();
         resolve(result);
       }
       function failure(error) {
         if(finished) return;
-        finished = true;
+        finished=true;
         cleanup();
         reject(error);
       }
-
-      const timeout = setTimeout(() => failure(new Error(
-        "Google bağlantısı çok gecikti. Cevabın kaydedilmiş olabilir. " +
-        "Lütfen tekrar göndermeden önce sonuç tablosunu kontrol et."
-      )),maxWait);
+      function launchIframeBackup() {
+        if(finished || iframeStarted) return;
+        iframeStarted=true;
+        postToBackend(fields,requestId).then(success).catch(error=>{
+          if(error.serverResponse) {
+            failure(error);
+          }
+        });
+      }
 
       async function checkReceipt() {
-        if(finished || polling || !receiptSupported) return;
-        polling = true;
+        if(finished || polling) return;
+        polling=true;
         try {
-          const result = await verifySavedReceipt(requestId);
-          if(result.saved) {
-            success({ok:true,submittedAt:result.submittedAt,verifiedByReceipt:true});
-          }
-        } catch(err) {
-          if(/henüz hazır değil|Bilinmeyen işlem/i.test(err.message || "")) receiptSupported = false;
+          const found=await verifyReceiptByAnySource(requestId);
+          success({
+            ok:true,
+            submittedAt:found.submittedAt || new Date().toISOString(),
+            verifiedByReceipt:true
+          });
+        } catch(error) {
+          // Neither receipt system has confirmed the submission yet.
+          // An opaque POST response is NEVER treated as proof of success.
         } finally {
-          polling = false;
+          polling=false;
         }
       }
-      const checker = setInterval(checkReceipt,pollEvery);
 
-      postToBackend(fields,requestId).then(success).catch(error => {
-        if(error.serverResponse) {
-          failure(error);
-        } else if(!finished) {
-          submitStatus.textContent = "Google yanıtı gecikiyor. Kaydın gerçekten oluştuğunu kontrol ediyoruz, lütfen bekle…";
-        }
-      });
+      const timeout=setTimeout(()=>failure(new Error(
+        "Google kayıt sisteminden "+Math.round(maxWait/1000)+
+        " saniyede onay alınamadı. Cevabın kaydedilmiş olabilir. " +
+        "Tekrar göndermeden önce sonuç sayfasını kontrol et."
+      )),maxWait);
+      const checker=setInterval(checkReceipt,3200);
+      const backupTimer=setTimeout(launchIframeBackup,5500);
+
+      // The primary path sends a simple anonymous POST. The old iframe
+      // receiver runs as a retry with the SAME request ID if needed.
+      // Server-side idempotency prevents duplicate submissions.
+      Promise.resolve()
+        .then(()=>postWithoutCors(fields,requestId))
+        .then(()=>checkReceipt())
+        .catch(()=>launchIframeBackup());
     });
   }
 
