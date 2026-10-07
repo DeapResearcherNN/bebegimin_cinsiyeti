@@ -719,16 +719,27 @@
     if (!window.confirm("Cevaplarını gönderdikten sonra değiştiremeyeceksin. Göndermek istediğine emin misin?")) return;
 
     submitButton.disabled = true;
-    submitButton.textContent = "Kaydediliyor…";
+    submitButton.classList.add("is-saving");
+    submitButton.textContent = "Gönderiliyor…";
+    const progressTimers = [];
 
     try {
       closeCamera();
       const data = new FormData(form);
+      const hasPhoto = !!selectedFiles.photo;
+      const hasMedia = !!selectedFiles.media;
+
+      submitStatus.textContent = hasPhoto
+        ? "Fotoğraf gönderim için hazırlanıyor…"
+        : hasMedia ? "Video / ses dosyan hazırlanıyor…" : "Tahminin Google'a gönderiliyor…";
+
+      const preparedPhoto = await optimizePhoto(selectedFiles.photo);
       const [photo,media] = await Promise.all([
-        readFileAsDataUrl(selectedFiles.photo,MAX_PHOTO,"Fotoğraf"),
+        readFileAsDataUrl(preparedPhoto,MAX_PHOTO,"Fotoğraf"),
         readFileAsDataUrl(selectedFiles.media,MAX_MEDIA,"Video / ses")
       ]);
-      const result = await postToBackend({
+
+      const submittedFields = {
         action:"submit",
         name:data.get("name"),
         relation:data.get("relation"),
@@ -741,26 +752,72 @@
         mediaName:media.name,
         mediaMime:media.mime,
         mediaData:media.data
-      });
+      };
 
-      // Notify any already-authorized results tab in the same browser.
-      // This contains only a timestamp, never a name, answer or access token.
-      try {
-        localStorage.setItem("baby_results_changed_at", String(Date.now()));
-      } catch (ignored) {
-        // Storage can be unavailable in private or restricted browsers.
+      // Preserve the same request ID if the user retries unchanged answers
+      // after a network timeout. The backend de-duplicates this ID.
+      const fingerprint = [
+        submittedFields.name,submittedFields.relation,
+        submittedFields.gender,submittedFields.firstGuess,
+        submittedFields.shortNote,
+        selectedFiles.photo && selectedFiles.photo.name,
+        selectedFiles.photo && selectedFiles.photo.size,
+        selectedFiles.media && selectedFiles.media.name,
+        selectedFiles.media && selectedFiles.media.size
+      ].join("|");
+
+      const fresh = !lastSubmission ||
+        lastSubmission.fingerprint !== fingerprint ||
+        Date.now() - lastSubmission.started > 1800000;
+      if(fresh) {
+        lastSubmission = {
+          fingerprint,
+          requestId:newRequestId(),
+          started:Date.now()
+        };
       }
 
+      submitStatus.textContent = hasMedia
+        ? "Dosyalar güvenle aktarılıyor. Büyük videolar biraz daha uzun sürebilir."
+        : "Tahminin kaydediliyor; lütfen sayfayı kapatma.";
+
+      progressTimers.push(setTimeout(()=>{
+        submitStatus.textContent = "Google Drive ile bağlantı kuruldu, kayıt onayı bekleniyor…";
+      },8500));
+      progressTimers.push(setTimeout(()=>{
+        submitStatus.textContent =
+          "İşlem beklenenden uzun sürüyor. Cevabın yazılıp yazılmadığını ayrıca kontrol ediyoruz.";
+      },19500));
+      progressTimers.push(setTimeout(()=>{
+        submitStatus.textContent =
+          "Bağlantı yavaş. Yanlışlıkla ikinci kez göndermemek için kayıt onayını bekliyoruz.";
+      },34000));
+
+      const result = await sendWithReceipt(
+        submittedFields, lastSubmission.requestId, hasMedia
+      );
+
+      // This signal is anonymous; no family name, guess or attachment is
+      // stored in browser storage.
+      try {
+        localStorage.setItem("baby_results_changed_at", String(Date.now()));
+      } catch(ignored) {}
+
+      lastSubmission = null;
       document.querySelector("#success-name").textContent = data.get("name") || "";
       document.querySelector("#success-gender").textContent = data.get("gender") || "";
       document.querySelector("#success-date").textContent =
         new Intl.DateTimeFormat("tr-TR",{dateStyle:"long",timeStyle:"short"})
           .format(new Date(result.submittedAt || Date.now()));
+      submitStatus.textContent = "";
       show("success");
     } catch(error) {
-      submitStatus.textContent = error.message || "Gönderim sırasında bir hata oluştu.";
+      submitStatus.textContent = error.message ||
+        "Kayıt yanıtı alınamadı. Tekrar göndermeden önce sonucunu kontrol et.";
     } finally {
+      progressTimers.forEach(timer => clearTimeout(timer));
       submitButton.disabled = false;
+      submitButton.classList.remove("is-saving");
       submitButton.textContent = "Tahminimi kaydet ♡";
     }
   });
