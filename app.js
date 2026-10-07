@@ -448,6 +448,146 @@
     });
   }
 
+  // Most mobile photos are many megabytes. Downsize large JPEG-capable
+  // images locally before encoding for the Google Apps Script form POST.
+  function optimizePhoto(file) {
+    return new Promise(resolve => {
+      if(!file || file.size < 600000 || !/^image\//i.test(file.type || "")) {
+        resolve(file);
+        return;
+      }
+
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      let finished = false;
+      function complete(result) {
+        if(finished) return;
+        finished = true;
+        URL.revokeObjectURL(objectUrl);
+        resolve(result || file);
+      }
+      image.onload = () => {
+        try {
+          const ratio = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+          canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            if(blob && blob.size > 0 && blob.size < file.size) {
+              complete(new File([blob], "aile_fotografi_" + Date.now() + ".jpg", {type:"image/jpeg"}));
+            } else {
+              complete(file);
+            }
+          }, "image/jpeg", 0.79);
+        } catch(err) {
+          complete(file);
+        }
+      };
+      image.onerror = () => complete(file);
+      image.src = objectUrl;
+    });
+  }
+
+  function newRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return "req_" + window.crypto.randomUUID();
+    }
+    return "req_" + Date.now() + "_" + Math.random().toString(36).slice(2) + "_" + Math.random().toString(36).slice(2);
+  }
+
+  function verifySavedReceipt(requestId) {
+    return new Promise((resolve,reject) => {
+      const callback = "__baby_receipt_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      const url = new URL(apiUrl);
+      url.searchParams.set("action","submissionReceipt");
+      url.searchParams.set("requestId",requestId);
+      url.searchParams.set("callback",callback);
+      url.searchParams.set("_",String(Date.now()));
+      let finished = false;
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("Kayıt kontrol servisi yanıt vermedi."));
+      },7500);
+      function cleanup() {
+        if(finished) return;
+        finished = true;
+        clearTimeout(timer);
+        delete window[callback];
+        script.remove();
+      }
+      window[callback] = result => {
+        cleanup();
+        if(result && result.ok && typeof result.saved === "boolean") resolve(result);
+        else reject(new Error((result && result.error) || "Kayıt kontrol servisi henüz hazır değil."));
+      };
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("Kayıt kontrol bağlantısı açılamadı."));
+      };
+      script.src = url.toString();
+      document.head.append(script);
+    });
+  }
+
+  function sendWithReceipt(fields, requestId, hasMedia) {
+    return new Promise((resolve,reject) => {
+      let finished = false;
+      let polling = false;
+      let receiptSupported = true;
+      const maxWait = hasMedia ? 65000 : 42000;
+      const pollEvery = 3500;
+
+      function cleanup() {
+        clearTimeout(timeout);
+        clearInterval(checker);
+      }
+      function success(result) {
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(result);
+      }
+      function failure(error) {
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(error);
+      }
+
+      const timeout = setTimeout(() => failure(new Error(
+        "Google bağlantısı çok gecikti. Cevabın kaydedilmiş olabilir. " +
+        "Lütfen tekrar göndermeden önce sonuç tablosunu kontrol et."
+      )),maxWait);
+
+      async function checkReceipt() {
+        if(finished || polling || !receiptSupported) return;
+        polling = true;
+        try {
+          const result = await verifySavedReceipt(requestId);
+          if(result.saved) {
+            success({ok:true,submittedAt:result.submittedAt,verifiedByReceipt:true});
+          }
+        } catch(err) {
+          if(/henüz hazır değil|Bilinmeyen işlem/i.test(err.message || "")) receiptSupported = false;
+        } finally {
+          polling = false;
+        }
+      }
+      const checker = setInterval(checkReceipt,pollEvery);
+
+      postToBackend(fields,requestId).then(success).catch(error => {
+        if(error.serverResponse) {
+          failure(error);
+        } else if(!finished) {
+          submitStatus.textContent = "Google yanıtı gecikiyor. Kaydın gerçekten oluştuğunu kontrol ediyoruz, lütfen bekle…";
+        }
+      });
+    });
+  }
+
   function postToBackend(fields) {
     return new Promise((resolve,reject)=>{
       if (!apiUrl) return reject(new Error("Google Drive kayıt sistemi henüz etkinleştirilmedi."));
