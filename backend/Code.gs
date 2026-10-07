@@ -18,10 +18,6 @@ function doGet(e) {
 
     if (action === 'health') {
       result = { ok: true, service: 'baby-family-api', time: new Date().toISOString() };
-    } else if (action === 'status') {
-      result = getStatus_(p);
-    } else if (action === 'participants') {
-      result = getParticipants_();
     } else {
       throw new Error('Bilinmeyen işlem.');
     }
@@ -172,20 +168,29 @@ function submitResponse_(p) {
     participantsSheet.getRange(participant.row, 5, 1, 2)
       .setValues([[true, submittedAt]]);
 
-    writeBackupJson_({
-      recordId: recordId,
-      participantId: participant.id,
-      name: name,
-      relation: relation,
-      gender: gender,
-      firstGuess: firstGuess,
-      shortNote: shortNote,
-      photo: photo,
-      media: media,
-      submittedAt: submittedAt.toISOString()
-    });
+    // Auxiliary operations must never invalidate an already saved response.
+    try {
+      writeBackupJson_({
+        recordId: recordId,
+        participantId: participant.id,
+        name: name,
+        relation: relation,
+        gender: gender,
+        firstGuess: firstGuess,
+        shortNote: shortNote,
+        photo: photo,
+        media: media,
+        submittedAt: submittedAt.toISOString()
+      });
+    } catch (backupError) {
+      console.error('Yedek oluşturulamadı: ' + String(backupError));
+    }
 
-    sendNotification_(name, relation, gender, submittedAt);
+    try {
+      sendNotification_(name, relation, gender, submittedAt);
+    } catch (notificationError) {
+      console.error('Bildirim gönderilemedi: ' + String(notificationError));
+    }
 
     return {
       ok: true,
