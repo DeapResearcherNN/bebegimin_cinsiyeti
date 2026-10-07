@@ -1,80 +1,173 @@
 (() => {
+  const apiUrl = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.apiUrl) || "";
   const state = {};
   const screens = [...document.querySelectorAll(".screen")];
   const form = document.querySelector("#family-form");
+  const apiFrame = document.querySelector("#api-frame");
+  const submitButton = document.querySelector("#submit-button");
+  const submitStatus = document.querySelector("#submit-status");
+  const accessStatus = document.querySelector("#access-status");
+  let familyCode = "";
 
   function show(step){
     screens.forEach(s => s.classList.toggle("active", s.dataset.step === step));
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
-  function collect(){
-    const data = new FormData(form);
-
-    for(const [key,val] of data.entries()){
-      if(val instanceof File){
-        if(val.name) state[key] = val.name;
-      } else {
-        state[key] = val;
+  function readFileAsDataUrl(file, maxBytes, label){
+    return new Promise((resolve, reject) => {
+      if (!file || !file.name) return resolve({name:"", mime:"", data:""});
+      if (file.size > maxBytes) {
+        return reject(new Error(label + " dosyası çok büyük."));
       }
-    }
+      const reader = new FileReader();
+      reader.onload = () => resolve({
+        name: file.name,
+        mime: file.type || "application/octet-stream",
+        data: reader.result
+      });
+      reader.onerror = () => reject(new Error(label + " okunamadı."));
+      reader.readAsDataURL(file);
+    });
   }
 
-  form.addEventListener("submit", e => {
-    e.preventDefault();
+  function postToBackend(fields){
+    return new Promise((resolve, reject) => {
+      if (!apiUrl) {
+        reject(new Error("Google Drive kayıt sistemi henüz etkinleştirilmedi."));
+        return;
+      }
 
-    if(!form.reportValidity()) return;
+      const requestId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const postForm = document.createElement("form");
+      postForm.method = "POST";
+      postForm.action = apiUrl;
+      postForm.target = "api-frame";
+      postForm.hidden = true;
 
-    collect();
+      const payload = {...fields, requestId};
+      Object.entries(payload).forEach(([key,value]) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value = value == null ? "" : String(value);
+        postForm.appendChild(input);
+      });
 
-    const record = {
-      name: state.name || "",
-      relation: state.relation || "",
-      gender: state.gender || "",
-      firstGuess: state.firstGuess || "",
-      photo: state.photo || "",
-      media: state.media || "",
-      shortNote: state.shortNote || "",
-      createdAt: new Date().toISOString()
-    };
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("Kayıt sunucusu zamanında yanıt vermedi."));
+      }, 60000);
 
-    const key = "bebegimin_cinsiyeti_form_v2";
-    let list = [];
+      function onMessage(event){
+        const data = event.data;
+        if (!data || data.source !== "baby-form-api") return;
+        if (data.requestId && data.requestId !== requestId) return;
 
-    try{
-      list = JSON.parse(localStorage.getItem(key) || "[]");
-      if(!Array.isArray(list)) list = [];
-    }catch(e){
-      list = [];
-    }
+        cleanup();
 
-    list.push(record);
-    localStorage.setItem(key, JSON.stringify(list));
+        if (data.ok) resolve(data);
+        else reject(new Error(data.error || "Kayıt başarısız."));
+      }
 
-    document.querySelector("#success-name").textContent = record.name;
-    document.querySelector("#success-gender").textContent = record.gender;
-    document.querySelector("#success-date").textContent =
-      new Intl.DateTimeFormat("tr-TR", {
-        dateStyle:"long",
-        timeStyle:"short"
-      }).format(new Date());
+      function cleanup(){
+        clearTimeout(timer);
+        window.removeEventListener("message", onMessage);
+        postForm.remove();
+      }
 
-    show("success");
-  });
+      window.addEventListener("message", onMessage);
+      document.body.appendChild(postForm);
+      postForm.submit();
+    });
+  }
 
   document.addEventListener("click", e => {
     const btn = e.target.closest("[data-action]");
-    if(!btn) return;
+    if (!btn) return;
 
     const action = btn.dataset.action;
 
-    if(action === "start") show("form");
-    if(action === "back") show("intro");
+    if (action === "start") {
+      familyCode = document.querySelector("#family-code").value.trim();
+      accessStatus.textContent = "";
 
-    if(action === "restart"){
+      if (!familyCode) {
+        accessStatus.textContent = "Devam etmek için aile şifresini yaz.";
+        return;
+      }
+
+      show("form");
+    }
+
+    if (action === "back") show("intro");
+
+    if (action === "restart") {
       form.reset();
       Object.keys(state).forEach(k => delete state[k]);
       show("intro");
+    }
+  });
+
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    submitStatus.textContent = "";
+
+    if (!form.reportValidity()) return;
+
+    if (!apiUrl) {
+      submitStatus.textContent = "Kayıt sistemi henüz Google Drive'a bağlanmadı. Şu an form gönderilemez.";
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Cevaplarını gönderdikten sonra değiştiremeyeceksin. Göndermek istediğine emin misin?"
+    );
+    if (!confirmed) return;
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Kaydediliyor…";
+
+    try {
+      const fd = new FormData(form);
+      const photoFile = form.querySelector('input[name="photo"]').files[0];
+      const mediaFile = form.querySelector('input[name="media"]').files[0];
+
+      const [photo, media] = await Promise.all([
+        readFileAsDataUrl(photoFile, 8 * 1024 * 1024, "Fotoğraf"),
+        readFileAsDataUrl(mediaFile, 20 * 1024 * 1024, "Video / ses")
+      ]);
+
+      const result = await postToBackend({
+        action: "submit",
+        familyCode,
+        name: fd.get("name"),
+        relation: fd.get("relation"),
+        gender: fd.get("gender"),
+        firstGuess: fd.get("firstGuess"),
+        shortNote: fd.get("shortNote") || "",
+        photoName: photo.name,
+        photoMime: photo.mime,
+        photoData: photo.data,
+        mediaName: media.name,
+        mediaMime: media.mime,
+        mediaData: media.data
+      });
+
+      document.querySelector("#success-name").textContent = fd.get("name") || "";
+      document.querySelector("#success-gender").textContent = fd.get("gender") || "";
+      document.querySelector("#success-date").textContent =
+        new Intl.DateTimeFormat("tr-TR", {
+          dateStyle:"long",
+          timeStyle:"short"
+        }).format(new Date(result.submittedAt || Date.now()));
+
+      show("success");
+    } catch (err) {
+      submitStatus.textContent = err.message;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Tahminimi kaydet ♡";
     }
   });
 })();
