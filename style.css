@@ -110,3 +110,11 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
   font-size:14px;
   color:var(--accent-dark);
 }
+
+.family-access{display:grid;gap:7px;width:min(100%,330px);margin:0 auto 12px;text-align:left}
+.family-access label{font-size:11px;font-weight:900;color:var(--accent-dark)}
+.family-access input{width:100%;min-height:48px;border:1px solid rgba(124,85,92,.34);border-radius:14px;background:rgba(255,255,255,.94);padding:12px 14px;outline:none}
+.family-access input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(124,85,92,.08)}
+.form-status{min-height:18px;margin:7px 0 0;color:#954848;font-size:10px;line-height:1.45;text-align:center}
+.submit-box strong{color:var(--accent-dark)}
+.primary[disabled]{opacity:.55;cursor:not-allowed;transform:none!important}
