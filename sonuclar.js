@@ -5,33 +5,13 @@
   const TOKEN_KEY = "bebegimin_cinsiyeti_admin_session";
   const REFRESH_MS = 60000;
 
-  // These are fictional samples only. Private family replies never enter
-  // the public GitHub source; they are fetched after server-side authorization.
-  const samples = [
-    {
-      name:"TEST - Ayşe Örnek", relation:"Teyzesi (TEST)", gender:"👧 Kız",
-      firstGuess:"İlk andan beri kız",
-      shortNote:"TEST KAYDI: Minik bebeğimize kucak dolusu sevgiler. Ailemize hoş geldin!",
-      photoUrl:"",mediaUrl:"",submittedAt:"2026-10-07T21:50:56.211Z"
-    },
-    {
-      name:"TEST - Mehmet Deneme", relation:"Amcası (TEST)", gender:"👦 Erkek",
-      firstGuess:"İlk andan beri erkek",
-      shortNote:"TEST KAYDI: Büyüdüğünde bu tahminlere birlikte gülümseriz.",
-      photoUrl:"",mediaUrl:"",submittedAt:"2026-10-07T21:50:56.211Z"
-    },
-    {
-      name:"TEST - Zeynep Kontrol", relation:"Kuzeni (TEST)", gender:"👧 Kız",
-      firstGuess:"Önce erkek düşündüm, sonra fikrim değişti",
-      shortNote:"TEST KAYDI: Seni tanıyacağımız günü heyecanla bekliyoruz.",
-      photoUrl:"",mediaUrl:"",submittedAt:"2026-10-07T21:50:56.211Z"
-    }
-  ];
-
-  let responses = samples.slice();
-  let participants = samples.map(p => ({name:p.name,relation:p.relation,answered:true}));
+  // Private replies are not embedded into the public page.
+  // The server returns actual responses only for an authorized admin token.
+  const samples = [];
+  let responses = [];
+  let participants = [];
   let adminToken = sessionStorage.getItem(TOKEN_KEY) || "";
-  let mode = "demo";
+  let mode = "locked";
   let requestedEmail = "";
   let polling = false;
   let lastSync = null;
@@ -63,10 +43,10 @@
     const live = mode === "live";
     const status = $("#data-status");
     status.classList.toggle("live", live);
-    status.lastChild.textContent = live ? " Canlı sonuçlar" : " Örnek görünüm";
+    status.lastChild.textContent = live ? " Canlı sonuçlar" : " Özel sonuçlar";
     $("#updated-at").textContent = live && lastSync
       ? "Son güncelleme: " + formatDate(lastSync)
-      : "Tanıtım verileri gösteriliyor";
+      : "Gerçek kayıtlar için giriş gerekli";
     $("#sample-banner").hidden = live;
     $("#logout-btn").hidden = !live;
   }
@@ -259,13 +239,42 @@
     $("#empty-state").hidden=filtered.length>0;
   }
 
+  function renderLocked() {
+    for(const id of ["stat-total","stat-girl","stat-boy","stat-turnout","donut-total","count-notes","count-photos","count-media"]) {
+      $("#"+id).textContent = "—";
+    }
+    $("#girl-percent").textContent = "Özel sonuç";
+    $("#boy-percent").textContent = "Özel sonuç";
+    $("#waiting-label").textContent = "Giriş gerekli";
+    $("#legend-girl").textContent = "—";
+    $("#legend-boy").textContent = "—";
+    $("#vote-bar-pink").style.width = "0%";
+    $("#vote-bar-blue").style.width = "0%";
+    $("#vote-donut").style.background = "conic-gradient(#e8e3e7 0 100%)";
+    $("#distribution-insight").textContent = "Gerçek dağılım yalnızca yetkili hesaplara gösterilir.";
+    $("#first-chart").replaceChildren(node("p","no-relatives","İlk tahmin istatistikleri güvenli girişten sonra açılır."));
+    $("#relative-chart").replaceChildren(node("p","no-relatives","Aile katılım bilgileri güvenli girişten sonra açılır."));
+    $("#memory-insight").textContent = "Kısa mesajlar, fotoğraflar ve videolar özel tutuluyor.";
+    $("#response-grid").textContent = "";
+    $("#visible-count").textContent = "Giriş gerekli";
+    $("#empty-state").hidden = false;
+    $("#empty-state-title").textContent = "Aile cevapları gizli tutuluyor.";
+    $("#empty-state-description").textContent = "Güncel sonuçları görüntülemek için yetkili hesapla giriş yap.";
+  }
+
   function render(){
     syncStatus();
+    if(mode !== "live") {
+      renderLocked();
+      return;
+    }
     const data=mainDataset();
     writeStats(data);
     writeFirstChart(data);
     writeRelatives(data);
     writeResponses(data);
+    $("#empty-state-title").textContent = "Bu filtreye uygun yanıt yok.";
+    $("#empty-state-description").textContent = "Başka bir isim veya tahmin seçebilirsin.";
   }
 
   function setMessage(text,isError=false) {
