@@ -346,3 +346,15 @@ footer strong{font-family:Georgia,serif;font-size:14px;font-weight:500}
   .response-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   a{text-decoration:underline}
 }
+
+/* Public results: non-clickable upload indicators, no public Drive links */
+.media-links .media-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:7px 10px;border:1px solid #ebdfe5;border-radius:999px;
+  background:#f9f1f5;color:#805a6f;font-size:10px;font-weight:750;
+}
+.response-card[data-gender="boy"] .media-links .media-badge{
+  background:#eef6fd;border-color:#dceaf7;color:#5e83a9;
+}
+.sample-banner .button{flex-shrink:0}
+#retry-results[disabled]{opacity:.65;cursor:wait}
