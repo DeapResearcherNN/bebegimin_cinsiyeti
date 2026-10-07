@@ -17,7 +17,7 @@ function doGet(e) {
     let result;
 
     if (action === 'health') {
-      result = { ok: true, service: 'baby-family-api', time: new Date().toISOString() };
+      result = { ok: true, service: 'baby-family-api', authVersion: 'email-otp-v2', time: new Date().toISOString() };
     } else {
       throw new Error('Bilinmeyen işlem.');
     }
