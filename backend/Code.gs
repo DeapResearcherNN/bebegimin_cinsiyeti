@@ -5,8 +5,7 @@ const APP = Object.freeze({
   MEDIA_FOLDER_ID: '1HHeZ7AH1NjaA2TOP1WaphmmT9X3Gd-oi',
   BACKUP_FOLDER_ID: '1V7_wclmw5Vu0pHQBizmxZVP8TdGZaRiw',
   NAIME_EMAIL: 'naimegunduz75@gmail.com',
-  SERHAN_EMAIL: 'serhan.narli@gmail.com',
-  SITE_ORIGIN: 'https://deapresearchernn.github.io'
+  SERHAN_EMAIL: 'serhan.narli@gmail.com'
 });
 
 function doGet(e) {
@@ -18,13 +17,9 @@ function doGet(e) {
 
     if (action === 'health') {
       result = { ok: true, service: 'baby-family-api', time: new Date().toISOString() };
-    } else if (action === 'publicConfig') {
-      result = getPublicConfig_();
     } else if (action === 'status') {
-      requireFamilyCodeIfNeeded_(p.familyCode);
       result = getStatus_(p);
     } else if (action === 'participants') {
-      requireFamilyCodeIfNeeded_(p.familyCode);
       result = getParticipants_();
     } else {
       throw new Error('Bilinmeyen işlem.');
@@ -54,9 +49,6 @@ function doPost(e) {
     } else if (action === 'adminSetSetting') {
       requireAdmin_(p.adminPassword);
       result = adminSetSetting_(p);
-    } else if (action === 'adminSetFamilyCode') {
-      requireAdmin_(p.adminPassword);
-      result = adminSetFamilyCode_(p);
     } else {
       throw new Error('Bilinmeyen işlem.');
     }
@@ -85,20 +77,7 @@ function setupSharing() {
   return 'Paylaşım tamamlandı.';
 }
 
-function getPublicConfig_() {
-  const settings = getSettings_();
-  return {
-    ok: true,
-    formOpen: upper_(settings.FORM_ACIK) === 'TRUE',
-    passwordRequired: upper_(settings.AILE_SIFRESI_ZORUNLU) === 'TRUE',
-    participantListRequired: upper_(settings.KATILIMCI_LISTESI_ZORUNLU) === 'TRUE',
-    liveMode: upper_(settings.CANLI_ACIKLAMA_MODU) === 'TRUE',
-    eventDate: settings.ETKINLIK_TARIHI || ''
-  };
-}
-
 function submitResponse_(p) {
-  requireFamilyCodeIfNeeded_(p.familyCode);
 
   const settings = getSettings_();
   if (String(settings.FORM_ACIK).toUpperCase() !== 'TRUE') {
@@ -317,17 +296,12 @@ function adminAddParticipant_(p) {
 }
 
 function adminSetSetting_(p) {
-  const allowed = ['FORM_ACIK', 'CANLI_ACIKLAMA_MODU', 'ETKINLIK_TARIHI', 'KATILIMCI_LISTESI_ZORUNLU', 'AILE_SIFRESI_ZORUNLU'];
+  const allowed = ['FORM_ACIK', 'CANLI_ACIKLAMA_MODU', 'ETKINLIK_TARIHI', 'KATILIMCI_LISTESI_ZORUNLU'];
   const key = clean_(p.key);
   const value = clean_(p.value);
 
   if (allowed.indexOf(key) === -1) {
     throw new Error('Bu ayar değiştirilemez.');
-  }
-
-  if (key === 'AILE_SIFRESI_ZORUNLU' && upper_(value) === 'TRUE') {
-    const code = PropertiesService.getScriptProperties().getProperty('FAMILY_CODE');
-    if (!code) throw new Error('Önce bir aile şifresi belirle.');
   }
 
   setSetting_(key, value);
@@ -443,21 +417,6 @@ function sendNotification_(name, relation, gender, submittedAt) {
   });
 }
 
-function adminSetFamilyCode_(p) {
-  const code = clean_(p.familyCode);
-  if (code.length < 4) throw new Error('Aile şifresi en az 4 karakter olmalı.');
-  PropertiesService.getScriptProperties().setProperty('FAMILY_CODE', code);
-  return { ok: true, message: 'Aile şifresi kaydedildi.' };
-}
-
-function requireFamilyCodeIfNeeded_(code) {
-  const settings = getSettings_();
-  if (upper_(settings.AILE_SIFRESI_ZORUNLU) !== 'TRUE') return;
-
-  const expected = PropertiesService.getScriptProperties().getProperty('FAMILY_CODE');
-  if (!expected) throw new Error('Aile şifresi henüz belirlenmedi.');
-  if (String(code || '') !== expected) throw new Error('Aile şifresi yanlış.');
-}
 
 function requireAdmin_(password) {
   const expected = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
