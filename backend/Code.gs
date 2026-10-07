@@ -5,7 +5,8 @@ const APP = Object.freeze({
   MEDIA_FOLDER_ID: '1HHeZ7AH1NjaA2TOP1WaphmmT9X3Gd-oi',
   BACKUP_FOLDER_ID: '1V7_wclmw5Vu0pHQBizmxZVP8TdGZaRiw',
   NAIME_EMAIL: 'naimegunduz75@gmail.com',
-  SERHAN_EMAIL: 'serhan.narli@gmail.com'
+  SERHAN_EMAIL: 'serhan.narli@gmail.com',
+  SITE_ORIGIN: 'https://deapresearchernn.github.io'
 });
 
 function doGet(e) {
@@ -40,14 +41,20 @@ function doPost(e) {
 
     if (action === 'submit') {
       result = submitResponse_(p);
+    } else if (action === 'requestAdminCode') {
+      result = requestAdminCode_(p);
+    } else if (action === 'verifyAdminCode') {
+      result = verifyAdminCode_(p);
+    } else if (action === 'logoutAdmin') {
+      result = logoutAdmin_(p);
     } else if (action === 'adminList') {
-      requireAdmin_(p.adminPassword);
+      requireAdminSession_(p.adminToken);
       result = getAdminData_();
     } else if (action === 'adminAddParticipant') {
-      requireAdmin_(p.adminPassword);
+      requireAdminSession_(p.adminToken);
       result = adminAddParticipant_(p);
     } else if (action === 'adminSetSetting') {
-      requireAdmin_(p.adminPassword);
+      requireAdminSession_(p.adminToken);
       result = adminSetSetting_(p);
     } else {
       throw new Error('Bilinmeyen işlem.');
@@ -418,11 +425,168 @@ function sendNotification_(name, relation, gender, submittedAt) {
 }
 
 
-function requireAdmin_(password) {
-  const expected = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
-  if (!expected) throw new Error('Admin şifresi henüz kurulmadı.');
-  if (String(password || '') !== expected) throw new Error('Admin şifresi yanlış.');
+
+const ADMIN_CODE_TTL_SECONDS = 600;
+const ADMIN_SESSION_TTL_SECONDS = 21600;
+const ADMIN_CODE_ATTEMPT_LIMIT = 5;
+
+function allowedAdminEmail_(value) {
+  const email = String(value || '').trim().toLowerCase();
+  if (email !== APP.NAIME_EMAIL && email !== APP.SERHAN_EMAIL) {
+    throw new Error('Bu e-posta hesabı için yönetici erişimi yok.');
+  }
+  return email;
 }
+
+function sha256_(value) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(value),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(b) {
+    return ('0' + (b & 255).toString(16)).slice(-2);
+  }).join('');
+}
+
+function otpSecret_() {
+  const props = PropertiesService.getScriptProperties();
+  let secret = props.getProperty('ADMIN_OTP_SECRET');
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid();
+    props.setProperty('ADMIN_OTP_SECRET', secret);
+  }
+  return secret;
+}
+
+function requestAdminCode_(p) {
+  const email = allowedAdminEmail_(p.adminEmail);
+  const cache = CacheService.getScriptCache();
+  const throttleKey = 'baby:otp:throttle:' + email;
+  const countKey = 'baby:otp:count:' + email;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    if (cache.get(throttleKey)) {
+      throw new Error('Yeni kod istemeden önce 60 saniye bekle.');
+    }
+    const count = Number(cache.get(countKey) || '0');
+    if (count >= 8) {
+      throw new Error('Çok fazla kod istendi. Bir saat sonra tekrar dene.');
+    }
+    cache.put(throttleKey, '1', 60);
+    cache.put(countKey, String(count + 1), 3600);
+  } finally {
+    lock.releaseLock();
+  }
+
+  // Generate a one-time numeric challenge; store only its keyed digest.
+  const randomHex = Utilities.getUuid().replace(/-/g, '').slice(0, 8);
+  const code = String(100000 + parseInt(randomHex, 16) % 900000);
+  const hash = sha256_(email + '|' + code + '|' + otpSecret_());
+  const otpKey = 'baby:otp:challenge:' + email;
+  cache.put(otpKey, JSON.stringify({
+    hash: hash,
+    attempts: 0,
+    expiry: Date.now() + ADMIN_CODE_TTL_SECONDS * 1000
+  }), ADMIN_CODE_TTL_SECONDS);
+
+  try {
+    MailApp.sendEmail({
+      to: email,
+      subject: 'Bebeğimiz İçin Aile Tahminleri - Yönetici giriş kodu',
+      body: 'Yönetici paneline giriş kodun: ' + code +
+        '\n\nKod 10 dakika geçerlidir ve yalnızca bir kez kullanılabilir.' +
+        '\nBu işlemi sen başlatmadıysan mesajı dikkate alma.'
+    });
+  } catch (err) {
+    cache.remove(otpKey);
+    throw new Error('E-postaya kod gönderilemedi. Google izinlerini kontrol et.');
+  }
+  return {
+    ok: true,
+    message: 'Giriş kodunu seçilen e-posta adresine gönderdik. Kod 10 dakika geçerli.'
+  };
+}
+
+function verifyAdminCode_(p) {
+  const email = allowedAdminEmail_(p.adminEmail);
+  const code = String(p.adminCode || '').trim();
+  if (!/^\d{6}$/.test(code)) {
+    throw new Error('6 haneli doğrulama kodunu gir.');
+  }
+
+  const cache = CacheService.getScriptCache();
+  const key = 'baby:otp:challenge:' + email;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    const raw = cache.get(key);
+    if (!raw) throw new Error('Kodun süresi dolmuş veya kullanılmış. Yeni kod iste.');
+
+    const challenge = JSON.parse(raw);
+    if (challenge.expiry < Date.now()) {
+      cache.remove(key);
+      throw new Error('Kodun süresi doldu. Yeni kod iste.');
+    }
+
+    if (challenge.attempts >= ADMIN_CODE_ATTEMPT_LIMIT) {
+      cache.remove(key);
+      throw new Error('Çok fazla yanlış deneme. Yeni kod iste.');
+    }
+
+    const hash = sha256_(email + '|' + code + '|' + otpSecret_());
+    if (hash !== challenge.hash) {
+      challenge.attempts += 1;
+      if (challenge.attempts >= ADMIN_CODE_ATTEMPT_LIMIT) {
+        cache.remove(key);
+      } else {
+        cache.put(key, JSON.stringify(challenge),
+          Math.max(1, Math.min(ADMIN_CODE_TTL_SECONDS,
+            Math.ceil((challenge.expiry - Date.now()) / 1000))));
+      }
+      throw new Error('Kod yanlış. Tekrar kontrol et.');
+    }
+
+    cache.remove(key);
+    const token = Utilities.getUuid().replace(/-/g, '') +
+      Utilities.getUuid().replace(/-/g, '');
+    cache.put('baby:admin:session:' + sha256_(token),
+      email, ADMIN_SESSION_TTL_SECONDS);
+
+    return {
+      ok: true,
+      adminToken: token,
+      adminEmail: email,
+      validSeconds: ADMIN_SESSION_TTL_SECONDS
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function requireAdminSession_(token) {
+  const value = String(token || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(value)) {
+    throw new Error('Yönetici girişi gerekli.');
+  }
+  const email = CacheService.getScriptCache().get(
+    'baby:admin:session:' + sha256_(value));
+  if (!email) {
+    throw new Error('Oturumun süresi dolmuş. E-posta ile tekrar giriş yap.');
+  }
+  return allowedAdminEmail_(email);
+}
+
+function logoutAdmin_(p) {
+  requireAdminSession_(p.adminToken);
+  CacheService.getScriptCache().remove(
+    'baby:admin:session:' + sha256_(p.adminToken));
+  return {ok: true, message: 'Çıkış yapıldı.'};
+}
+
 
 function jsonp_(callback, data) {
   const cb = /^[A-Za-z_$][0-9A-Za-z_$\.]*$/.test(String(callback || ''))
@@ -435,14 +599,13 @@ function jsonp_(callback, data) {
 }
 
 function postMessage_(data) {
-  const json = JSON.stringify(Object.assign({ source: 'baby-form-api' }, data))
+  const json = JSON.stringify(Object.assign({source:'baby-form-api'}, data))
     .replace(/</g, '\\u003c');
-
-  return HtmlService.createHtmlOutput(
-    '<!doctype html><meta charset="utf-8"><script>' +
-    'window.parent.postMessage(' + json + ', "*");' +
-    '<\/script>'
-  );
+  const html = '<!doctype html><meta charset="utf-8">' +
+    '<script>window.top.postMessage(' +
+    json + ',' + JSON.stringify(APP.SITE_ORIGIN) + ');<\/script>';
+  return HtmlService.createHtmlOutput(html)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function normalize_(v) {
