@@ -17,7 +17,11 @@ function doGet(e) {
     let result;
 
     if (action === 'health') {
-      result = { ok: true, service: 'baby-family-api', authVersion: 'email-otp-v2', time: new Date().toISOString() };
+      result = { ok: true, service: 'baby-family-api', authVersion: 'email-otp-v2', publicVersion: 'anonymous-v1', time: new Date().toISOString() };
+    } else if (action === 'publicResults') {
+      // No admin token required. This route never returns real names, free text,
+      // upload links, file IDs, participant IDs or exact submission timestamps.
+      result = getPublicResults_();
     } else {
       throw new Error('Bilinmeyen işlem.');
     }
@@ -284,6 +288,98 @@ function getAdminData_() {
     settings: getSettings_(),
     sheetUrl: 'https://docs.google.com/spreadsheets/d/' + APP.SHEET_ID + '/edit'
   };
+}
+
+/**
+ * Public, read-only and privacy-minimized snapshot.
+ * The original private sheet stays protected in Google Drive.
+ */
+function getPublicResults_() {
+  const ss = SpreadsheetApp.openById(APP.SHEET_ID);
+  const records = ss.getSheetByName('Cevaplar').getDataRange().getDisplayValues();
+  const people = ss.getSheetByName('Katılımcılar').getDataRange().getDisplayValues();
+
+  let realSequence = 0;
+  let testSequence = 0;
+
+  const acceptedFirstGuesses = [
+    'İlk andan beri kız',
+    'İlk andan beri erkek',
+    'Önce kız düşündüm, sonra fikrim değişti',
+    'Önce erkek düşündüm, sonra fikrim değişti',
+    'Hiç tahminim olmadı'
+  ];
+
+  const answers = records.slice(1).filter(function(row) {
+    return !!row[0];
+  }).map(function(row) {
+    const test = isTestEntry_(row[2],row[3]);
+    const displayName = test
+      ? 'TEST - Deneme ' + (++testSequence)
+      : 'Katılımcı ' + (++realSequence);
+    const gender = String(row[4] || '').indexOf('Kız') >= 0 ? '👧 Kız' :
+      String(row[4] || '').indexOf('Erkek') >= 0 ? '👦 Erkek' : 'Belirtilmedi';
+    const first = String(row[5] || '');
+
+    return {
+      name: displayName,
+      relation: test ? 'Deneme (TEST)' : publicRelationCategory_(row[3]),
+      gender: gender,
+      firstGuess: acceptedFirstGuesses.indexOf(first) >= 0 ? first : 'Belirtilmedi',
+      shortNote: '',
+      hasNote: !!String(row[6] || '').trim(),
+      hasPhoto: !!String(row[7] || '').trim(),
+      hasMedia: !!String(row[9] || '').trim(),
+      photoUrl: '',
+      mediaUrl: '',
+      submittedAt: '',
+      isTest: test
+    };
+  });
+
+  let testedPeople = 0;
+  let realPeople = 0;
+  const safeParticipants = people.slice(1).filter(function(row) {
+    return !!row[0];
+  }).map(function(row) {
+    const test = isTestEntry_(row[1],row[2]);
+    return {
+      name: test ? 'TEST - ' + (++testedPeople) : 'Katılımcı ' + (++realPeople),
+      relation: test ? 'Deneme (TEST)' : 'Aile / arkadaş',
+      answered: String(row[4]).toUpperCase() === 'TRUE',
+      isTest: test
+    };
+  });
+
+  return {
+    ok: true,
+    service: 'baby-family-api',
+    publicVersion: 'anonymous-v1',
+    updatedAt: new Date().toISOString(),
+    responses: answers,
+    participants: safeParticipants
+  };
+}
+
+function isTestEntry_(name,relation) {
+  return /^TEST(?:\\b|\\s*[-:])/i.test(String(name || '').trim()) ||
+    /\\(TEST\\)/i.test(String(relation || ''));
+}
+
+function publicRelationCategory_(raw) {
+  const r = normalize_(raw);
+  if (r.indexOf('teyze') >= 0) return 'Teyze';
+  if (r.indexOf('dayı') >= 0) return 'Dayı';
+  if (r.indexOf('hala') >= 0) return 'Hala';
+  if (r.indexOf('amca') >= 0) return 'Amca';
+  if (r.indexOf('anneanne') >= 0) return 'Anneanne';
+  if (r.indexOf('babaanne') >= 0) return 'Babaanne';
+  if (r.indexOf('dede') >= 0) return 'Dede';
+  if (r.indexOf('kuzen') >= 0) return 'Kuzen';
+  if (r.indexOf('abla') >= 0) return 'Abla';
+  if (r.indexOf('abi') >= 0 || r.indexOf('ağabey') >= 0) return 'Abi';
+  if (r.indexOf('anne') >= 0 || r.indexOf('baba') >= 0) return 'Anne / baba';
+  return 'Aile / arkadaş';
 }
 
 function adminAddParticipant_(p) {
