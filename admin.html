@@ -64,14 +64,21 @@
 
         <section class="admin-card">
           <div class="admin-card-head">
-            <div><h3>Form ayarları</h3><p>Kayıtları aç/kapat ve katılımcı listesini zorunlu yap.</p></div>
+            <div><h3>Form ayarları</h3><p>Girişi şifreli veya şifresiz yap, kayıtları aç/kapat ve katılımcı listesini yönet.</p></div>
           </div>
           <div class="setting-grid">
+            <button class="secondary setting-btn" data-key="AILE_SIFRESI_ZORUNLU" data-value="FALSE">Şifresiz giriş</button>
+            <button class="secondary setting-btn" data-key="AILE_SIFRESI_ZORUNLU" data-value="TRUE">Şifreli giriş</button>
             <button class="secondary setting-btn" data-key="FORM_ACIK" data-value="TRUE">Formu aç</button>
             <button class="secondary setting-btn" data-key="FORM_ACIK" data-value="FALSE">Formu kapat</button>
             <button class="secondary setting-btn" data-key="KATILIMCI_LISTESI_ZORUNLU" data-value="TRUE">Sadece listedekiler</button>
             <button class="secondary setting-btn" data-key="KATILIMCI_LISTESI_ZORUNLU" data-value="FALSE">Liste zorunlu olmasın</button>
           </div>
+          <form id="family-code-form" class="participant-form family-code-form">
+            <input name="familyCode" type="password" minlength="4" placeholder="Yeni aile şifresi (en az 4 karakter)" required>
+            <button class="primary" type="submit">Aile şifresini kaydet</button>
+          </form>
+          <p id="access-mode-status" class="admin-status"></p>
           <p id="settings-status" class="admin-status"></p>
         </section>
 
