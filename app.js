@@ -461,9 +461,11 @@
       const image = new Image();
       const objectUrl = URL.createObjectURL(file);
       let finished = false;
+      const fallbackTimer = setTimeout(() => complete(file),6500);
       function complete(result) {
         if(finished) return;
         finished = true;
+        clearTimeout(fallbackTimer);
         URL.revokeObjectURL(objectUrl);
         resolve(result || file);
       }
