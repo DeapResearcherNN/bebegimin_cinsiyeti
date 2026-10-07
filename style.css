@@ -118,3 +118,85 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
 .form-status{min-height:18px;margin:7px 0 0;color:#954848;font-size:10px;line-height:1.45;text-align:center}
 .submit-box strong{color:var(--accent-dark)}
 .primary[disabled]{opacity:.55;cursor:not-allowed;transform:none!important}
+
+
+/* Şarta bağlı ilk tahmin ve fotoğraf/video kayıt arayüzü */
+[hidden]{display:none!important}
+.first-guess-question{border-color:rgba(124,85,92,.36)!important;background:linear-gradient(105deg,#fff9fa,#f5f9fe)!important}
+.first-guess-question .choice-list{margin-top:12px}
+.upload-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}
+.upload-action{
+  display:flex;justify-content:center;align-items:center;text-align:center;gap:7px;
+  min-height:49px;padding:11px 15px;border:1px solid #dfcfd0;border-radius:13px;
+  background:#fff;color:var(--text);font-size:12px;font-weight:780;
+  cursor:pointer;transition:background .16s,border-color .16s,transform .16s
+}
+.upload-action:hover{border-color:#ae8794;background:#fff7f9;transform:translateY(-1px)}
+.upload-action:focus-visible,.camera-secondary:focus-visible,.camera-primary:focus-visible,.remove-file:focus-visible{
+  outline:3px solid #b98ba6;outline-offset:2px
+}
+.upload-action-camera{background:linear-gradient(110deg,#faeaf0,#edf5fc);color:var(--accent-dark);border-color:#dcc7d1}
+.visually-hidden{
+  position:absolute!important;width:1px!important;height:1px!important;padding:0!important;
+  margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;border:0!important
+}
+.chosen-preview{
+  display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:14px;
+  padding:12px;border-radius:15px;border:1px solid #e9dedc;background:#fffaf9
+}
+.photo-preview{display:block;object-fit:cover;max-width:175px;max-height:150px;border-radius:11px}
+.media-preview{display:block;max-width:min(100%,360px);max-height:240px;border-radius:11px;background:#312d34}
+#audio-preview{max-width:100%;width:min(100%,350px)}
+.chosen-file-info{display:flex;flex:1 1 200px;justify-content:space-between;align-items:center;gap:11px;flex-wrap:wrap;min-width:0}
+.chosen-file-info strong{font-size:11px;font-weight:800;overflow-wrap:anywhere}
+.remove-file{
+  padding:8px 11px;background:#fff;border:1px solid #e5d6dd;color:#8e5c6e;
+  border-radius:999px;font-size:10px;font-weight:800;cursor:pointer
+}
+.remove-file:hover{background:#fff0f3}
+.camera-studio{
+  padding:18px;border:1px solid #dfc7d3;border-radius:19px;
+  background:linear-gradient(122deg,#fff4f8,#f2f8ff);
+  box-shadow:0 12px 28px rgba(105,73,93,.07)
+}
+.camera-studio-head{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:13px}
+.camera-studio-head h3{font-family:Georgia,"Times New Roman",serif;font-size:26px;font-weight:500;margin:7px 0 0}
+.camera-close{
+  flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:#fff;
+  border:1px solid #e3cfd8;color:#795260;cursor:pointer
+}
+.camera-view{
+  width:100%;max-height:425px;min-height:175px;position:relative;
+  background:#201f24;border-radius:16px;overflow:hidden;
+  display:grid;place-items:center
+}
+.camera-view video{width:100%;max-height:425px;object-fit:contain;display:block;aspect-ratio:16/10}
+.record-indicator{
+  position:absolute;top:12px;left:12px;z-index:2;
+  padding:8px 12px;border-radius:999px;
+  color:#fff;background:rgba(165,24,40,.93);font-size:11px;font-weight:900;
+  box-shadow:0 3px 12px rgba(25,0,0,.2)
+}
+.camera-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:14px}
+.camera-primary,.camera-secondary{
+  min-height:45px;border-radius:999px;border:1px solid #d8c9cf;
+  cursor:pointer;padding:11px 16px;font-size:11px;font-weight:850
+}
+.camera-primary{background:#80565e;color:#fff;border-color:#80565e}
+.camera-primary:hover{background:#65454f}
+.camera-primary[disabled]{opacity:.6;cursor:wait}
+.recording-button{background:#bd4155;border-color:#bd4155}
+.recording-button:hover{background:#933047}
+.camera-secondary{background:rgba(255,255,255,.95);color:#79515e}
+.camera-secondary:hover{background:#fff4f7}
+.camera-message{font-size:11px;line-height:1.6;color:#795763;margin:12px 0 0;min-height:14px}
+@media(max-width:650px){
+  .upload-options{grid-template-columns:1fr}
+  .camera-studio{padding:13px}
+  .camera-studio-head h3{font-size:22px}
+  .camera-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .camera-actions button{padding:10px 9px}
+  .camera-actions .camera-primary{grid-column:1/-1}
+  .chosen-preview{align-items:flex-start}
+}
