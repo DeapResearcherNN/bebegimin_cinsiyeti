@@ -56,6 +56,7 @@
   let clockTimer = null;
   let recordLimitTimer = null;
   let cameraReady = false;
+  let lastSubmission = null;
 
   function show(step) {
     if (step !== "form") closeCamera();
@@ -221,7 +222,7 @@
   }
 
   async function obtainCamera(mode, facing) {
-    const video = {facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}};
+    const video = {facingMode:{ideal:facing},width:{ideal:mode === "video" ? 960 : 1280},height:{ideal:mode === "video" ? 540 : 720}};
     if (mode === "photo") return {stream:await navigator.mediaDevices.getUserMedia({video,audio:false}), hasAudio:false};
     try {
       return {stream:await navigator.mediaDevices.getUserMedia({
@@ -338,7 +339,7 @@
     let recorder;
     try {
       const mimeType = mimePreference();
-      const settings = {videoBitsPerSecond:1000000,audioBitsPerSecond:96000};
+      const settings = {videoBitsPerSecond:700000,audioBitsPerSecond:64000};
       if (mimeType) settings.mimeType = mimeType;
       recorder = new MediaRecorder(cameraStream,settings);
     } catch (error) {
@@ -448,10 +449,151 @@
     });
   }
 
-  function postToBackend(fields) {
+  // Most mobile photos are many megabytes. Downsize large JPEG-capable
+  // images locally before encoding for the Google Apps Script form POST.
+  function optimizePhoto(file) {
+    return new Promise(resolve => {
+      if(!file || file.size < 600000 || !/^image\//i.test(file.type || "")) {
+        resolve(file);
+        return;
+      }
+
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      let finished = false;
+      const fallbackTimer = setTimeout(() => complete(file),6500);
+      function complete(result) {
+        if(finished) return;
+        finished = true;
+        clearTimeout(fallbackTimer);
+        URL.revokeObjectURL(objectUrl);
+        resolve(result || file);
+      }
+      image.onload = () => {
+        try {
+          const ratio = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * ratio));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * ratio));
+          canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(blob => {
+            if(blob && blob.size > 0 && blob.size < file.size) {
+              complete(new File([blob], "aile_fotografi_" + Date.now() + ".jpg", {type:"image/jpeg"}));
+            } else {
+              complete(file);
+            }
+          }, "image/jpeg", 0.79);
+        } catch(err) {
+          complete(file);
+        }
+      };
+      image.onerror = () => complete(file);
+      image.src = objectUrl;
+    });
+  }
+
+  function newRequestId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return "req_" + window.crypto.randomUUID();
+    }
+    return "req_" + Date.now() + "_" + Math.random().toString(36).slice(2) + "_" + Math.random().toString(36).slice(2);
+  }
+
+  function verifySavedReceipt(requestId) {
+    return new Promise((resolve,reject) => {
+      const callback = "__baby_receipt_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      const url = new URL(apiUrl);
+      url.searchParams.set("action","submissionReceipt");
+      url.searchParams.set("requestId",requestId);
+      url.searchParams.set("callback",callback);
+      url.searchParams.set("_",String(Date.now()));
+      let finished = false;
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("Kayıt kontrol servisi yanıt vermedi."));
+      },7500);
+      function cleanup() {
+        if(finished) return;
+        finished = true;
+        clearTimeout(timer);
+        delete window[callback];
+        script.remove();
+      }
+      window[callback] = result => {
+        cleanup();
+        if(result && result.ok && typeof result.saved === "boolean") resolve(result);
+        else reject(new Error((result && result.error) || "Kayıt kontrol servisi henüz hazır değil."));
+      };
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("Kayıt kontrol bağlantısı açılamadı."));
+      };
+      script.src = url.toString();
+      document.head.append(script);
+    });
+  }
+
+  function sendWithReceipt(fields, requestId, hasMedia) {
+    return new Promise((resolve,reject) => {
+      let finished = false;
+      let polling = false;
+      let receiptSupported = true;
+      const maxWait = hasMedia ? 65000 : 42000;
+      const pollEvery = 3500;
+
+      function cleanup() {
+        clearTimeout(timeout);
+        clearInterval(checker);
+      }
+      function success(result) {
+        if(finished) return;
+        finished = true;
+        cleanup();
+        resolve(result);
+      }
+      function failure(error) {
+        if(finished) return;
+        finished = true;
+        cleanup();
+        reject(error);
+      }
+
+      const timeout = setTimeout(() => failure(new Error(
+        "Google bağlantısı çok gecikti. Cevabın kaydedilmiş olabilir. " +
+        "Lütfen tekrar göndermeden önce sonuç tablosunu kontrol et."
+      )),maxWait);
+
+      async function checkReceipt() {
+        if(finished || polling || !receiptSupported) return;
+        polling = true;
+        try {
+          const result = await verifySavedReceipt(requestId);
+          if(result.saved) {
+            success({ok:true,submittedAt:result.submittedAt,verifiedByReceipt:true});
+          }
+        } catch(err) {
+          if(/henüz hazır değil|Bilinmeyen işlem/i.test(err.message || "")) receiptSupported = false;
+        } finally {
+          polling = false;
+        }
+      }
+      const checker = setInterval(checkReceipt,pollEvery);
+
+      postToBackend(fields,requestId).then(success).catch(error => {
+        if(error.serverResponse) {
+          failure(error);
+        } else if(!finished) {
+          submitStatus.textContent = "Google yanıtı gecikiyor. Kaydın gerçekten oluştuğunu kontrol ediyoruz, lütfen bekle…";
+        }
+      });
+    });
+  }
+
+  function postToBackend(fields, requestId) {
     return new Promise((resolve,reject)=>{
       if (!apiUrl) return reject(new Error("Google Drive kayıt sistemi henüz etkinleştirilmedi."));
-      const requestId = "req_" + Date.now() + "_" + Math.random().toString(36).slice(2);
       const postForm = document.createElement("form");
       postForm.method = "POST";
       postForm.action = apiUrl;
@@ -470,14 +612,18 @@
       const timer = setTimeout(()=>{
         cleanup();
         reject(new Error("Kayıt sunucusu zamanında yanıt vermedi. Bağlantıyı kontrol edip tekrar dene."));
-      },90000);
+      },70000);
 
       function onMessage(event) {
         const data = event.data;
         if (!data || data.source !== "baby-form-api" || data.requestId !== requestId) return;
         cleanup();
         if (data.ok) resolve(data);
-        else reject(new Error(data.error || "Kayıt başarısız."));
+        else {
+          const error = new Error(data.error || "Kayıt başarısız.");
+          error.serverResponse = true;
+          reject(error);
+        }
       }
       function cleanup() {
         if (resolved) return;
@@ -575,16 +721,27 @@
     if (!window.confirm("Cevaplarını gönderdikten sonra değiştiremeyeceksin. Göndermek istediğine emin misin?")) return;
 
     submitButton.disabled = true;
-    submitButton.textContent = "Kaydediliyor…";
+    submitButton.classList.add("is-saving");
+    submitButton.textContent = "Gönderiliyor…";
+    const progressTimers = [];
 
     try {
       closeCamera();
       const data = new FormData(form);
+      const hasPhoto = !!selectedFiles.photo;
+      const hasMedia = !!selectedFiles.media;
+
+      submitStatus.textContent = hasPhoto
+        ? "Fotoğraf gönderim için hazırlanıyor…"
+        : hasMedia ? "Video / ses dosyan hazırlanıyor…" : "Tahminin Google'a gönderiliyor…";
+
+      const preparedPhoto = await optimizePhoto(selectedFiles.photo);
       const [photo,media] = await Promise.all([
-        readFileAsDataUrl(selectedFiles.photo,MAX_PHOTO,"Fotoğraf"),
+        readFileAsDataUrl(preparedPhoto,MAX_PHOTO,"Fotoğraf"),
         readFileAsDataUrl(selectedFiles.media,MAX_MEDIA,"Video / ses")
       ]);
-      const result = await postToBackend({
+
+      const submittedFields = {
         action:"submit",
         name:data.get("name"),
         relation:data.get("relation"),
@@ -597,26 +754,72 @@
         mediaName:media.name,
         mediaMime:media.mime,
         mediaData:media.data
-      });
+      };
 
-      // Notify any already-authorized results tab in the same browser.
-      // This contains only a timestamp, never a name, answer or access token.
-      try {
-        localStorage.setItem("baby_results_changed_at", String(Date.now()));
-      } catch (ignored) {
-        // Storage can be unavailable in private or restricted browsers.
+      // Preserve the same request ID if the user retries unchanged answers
+      // after a network timeout. The backend de-duplicates this ID.
+      const fingerprint = [
+        submittedFields.name,submittedFields.relation,
+        submittedFields.gender,submittedFields.firstGuess,
+        submittedFields.shortNote,
+        selectedFiles.photo && selectedFiles.photo.name,
+        selectedFiles.photo && selectedFiles.photo.size,
+        selectedFiles.media && selectedFiles.media.name,
+        selectedFiles.media && selectedFiles.media.size
+      ].join("|");
+
+      const fresh = !lastSubmission ||
+        lastSubmission.fingerprint !== fingerprint ||
+        Date.now() - lastSubmission.started > 1800000;
+      if(fresh) {
+        lastSubmission = {
+          fingerprint,
+          requestId:newRequestId(),
+          started:Date.now()
+        };
       }
 
+      submitStatus.textContent = hasMedia
+        ? "Dosyalar güvenle aktarılıyor. Büyük videolar biraz daha uzun sürebilir."
+        : "Tahminin kaydediliyor; lütfen sayfayı kapatma.";
+
+      progressTimers.push(setTimeout(()=>{
+        submitStatus.textContent = "Google Drive ile bağlantı kuruldu, kayıt onayı bekleniyor…";
+      },8500));
+      progressTimers.push(setTimeout(()=>{
+        submitStatus.textContent =
+          "İşlem beklenenden uzun sürüyor. Cevabın yazılıp yazılmadığını ayrıca kontrol ediyoruz.";
+      },19500));
+      progressTimers.push(setTimeout(()=>{
+        submitStatus.textContent =
+          "Bağlantı yavaş. Yanlışlıkla ikinci kez göndermemek için kayıt onayını bekliyoruz.";
+      },34000));
+
+      const result = await sendWithReceipt(
+        submittedFields, lastSubmission.requestId, hasMedia
+      );
+
+      // This signal is anonymous; no family name, guess or attachment is
+      // stored in browser storage.
+      try {
+        localStorage.setItem("baby_results_changed_at", String(Date.now()));
+      } catch(ignored) {}
+
+      lastSubmission = null;
       document.querySelector("#success-name").textContent = data.get("name") || "";
       document.querySelector("#success-gender").textContent = data.get("gender") || "";
       document.querySelector("#success-date").textContent =
         new Intl.DateTimeFormat("tr-TR",{dateStyle:"long",timeStyle:"short"})
           .format(new Date(result.submittedAt || Date.now()));
+      submitStatus.textContent = "";
       show("success");
     } catch(error) {
-      submitStatus.textContent = error.message || "Gönderim sırasında bir hata oluştu.";
+      submitStatus.textContent = error.message ||
+        "Kayıt yanıtı alınamadı. Tekrar göndermeden önce sonucunu kontrol et.";
     } finally {
+      progressTimers.forEach(timer => clearTimeout(timer));
       submitButton.disabled = false;
+      submitButton.classList.remove("is-saving");
       submitButton.textContent = "Tahminimi kaydet ♡";
     }
   });
