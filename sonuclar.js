@@ -32,8 +32,19 @@
   const percent = (count, all) => all ? Math.round(count * 100 / all) : 0;
   const isRealDriveUrl = value => /^https:\/\/drive\.google\.com\/(?:file\/|open|drive\/)/i.test(String(value || ""));
 
+  function parseDate(value) {
+    const str = String(value || "").trim();
+    const parts = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (parts) {
+      return new Date(Number(parts[3]),Number(parts[2])-1,Number(parts[1]),Number(parts[4]||0),Number(parts[5]||0),Number(parts[6]||0)).getTime();
+    }
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date.getTime() : 0;
+  }
+
   function formatDate(value) {
     if (!value) return "Tarih belirtilmemiş";
+    if (/^\d{1,2}\.\d{1,2}\.\d{4}/.test(String(value))) return String(value);
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return String(value);
     return new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium",timeStyle:"short",timeZone:"Europe/Berlin"}).format(date);
@@ -225,8 +236,8 @@
     });
     filtered.sort((a,b)=>{
       if(sort==="name")return String(a.name||"").localeCompare(String(b.name||""),"tr");
-      const t1=new Date(a.submittedAt||0).getTime()||0;
-      const t2=new Date(b.submittedAt||0).getTime()||0;
+      const t1=parseDate(a.submittedAt);
+      const t2=parseDate(b.submittedAt);
       return sort==="oldest"?t1-t2:t2-t1;
     });
 
@@ -355,13 +366,18 @@
       if(/oturum|giriş|session|token/i.test(String(error.message||""))){
         adminToken="";
         sessionStorage.removeItem(TOKEN_KEY);
-        mode="demo";
-        responses=samples.slice();
-        participants=samples.map(p=>({name:p.name,relation:p.relation,answered:true}));
+        mode="locked";
+        responses=[];
+        participants=[];
         render();
-        if(!silent)openAccess();
+        $("#access-panel").hidden=false;
       }
-      if(!silent)throw error;
+      if(silent){
+        $("#access-panel").hidden=false;
+        setMessage(error.message || "Sonuçlar yüklenemedi, tekrar dene.",true);
+      } else {
+        throw error;
+      }
     }finally{
       polling=false;
     }
@@ -441,7 +457,7 @@
     sessionStorage.removeItem(TOKEN_KEY);
     responses=samples.slice();
     participants=samples.map(p=>({name:p.name,relation:p.relation,answered:true}));
-    mode="demo";
+    mode="locked";
     lastSync=null;
     render();
     if(previous){
@@ -458,7 +474,10 @@
 
   render();
   if(adminToken){
+    $("#updated-at").textContent="Gerçek sonuçlar yükleniyor…";
     loadLive(true).catch(()=>{});
+  } else {
+    $("#access-panel").hidden=false;
   }
   setInterval(()=>{
     if(mode==="live"&&adminToken&&!document.hidden&&!polling){
