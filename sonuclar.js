@@ -2,69 +2,59 @@
   "use strict";
 
   const apiUrl = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.apiUrl) || "";
-  const TOKEN_KEY = "bebegimin_cinsiyeti_admin_session";
   const REFRESH_MS = 60000;
-
-  // Private replies are not embedded into the public page.
-  // The server returns actual responses only for an authorized admin token.
-  const samples = [];
   let responses = [];
   let participants = [];
-  let adminToken = sessionStorage.getItem(TOKEN_KEY) || "";
-  let mode = "locked";
-  let requestedEmail = "";
-  let polling = false;
+  let loaded = false;
+  let busy = false;
+  let loadError = "";
   let lastSync = null;
 
   const $ = selector => document.querySelector(selector);
   const node = (tag, cls, text) => {
     const element = document.createElement(tag);
-    if (cls) element.className = cls;
-    if (text !== undefined && text !== null) element.textContent = String(text);
+    if(cls) element.className = cls;
+    if(text !== undefined && text !== null) element.textContent = String(text);
     return element;
   };
-
-  const clamp = (value, a, b) => Math.max(a, Math.min(b, value));
   const normalize = value => String(value || "").toLocaleLowerCase("tr-TR").trim();
-  const isTest = person => /^test\b/i.test(String(person.name || "").trim()) || /\(test\)/i.test(String(person.relation || ""));
+  const isTest = person => person.isTest === true ||
+    /^test\b/i.test(String(person.name || "").trim()) ||
+    /\(test\)/i.test(String(person.relation || ""));
   const isGirl = person => normalize(person.gender).includes("kız");
   const isBoy = person => normalize(person.gender).includes("erkek");
-  const percent = (count, all) => all ? Math.round(count * 100 / all) : 0;
-  const isRealDriveUrl = value => /^https:\/\/drive\.google\.com\/(?:file\/|open|drive\/)/i.test(String(value || ""));
-
-  function parseDate(value) {
-    const str = String(value || "").trim();
-    const parts = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-    if (parts) {
-      return new Date(Number(parts[3]),Number(parts[2])-1,Number(parts[1]),Number(parts[4]||0),Number(parts[5]||0),Number(parts[6]||0)).getTime();
-    }
-    const date = new Date(value);
-    return Number.isFinite(date.getTime()) ? date.getTime() : 0;
-  }
+  const percent = (count, total) => total ? Math.round(100 * count / total) : 0;
 
   function formatDate(value) {
-    if (!value) return "Tarih belirtilmemiş";
-    if (/^\d{1,2}\.\d{1,2}\.\d{4}/.test(String(value))) return String(value);
+    if(!value) return "Tarih belirtilmemiş";
     const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) return String(value);
-    return new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium",timeStyle:"short",timeZone:"Europe/Berlin"}).format(date);
+    if(!Number.isFinite(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat("tr-TR",{
+      dateStyle:"medium",timeStyle:"short",timeZone:"Europe/Berlin"
+    }).format(date);
   }
 
   function syncStatus() {
-    const live = mode === "live";
-    const status = $("#data-status");
-    status.classList.toggle("live", live);
-    status.lastChild.textContent = live ? " Canlı sonuçlar" : " Özel sonuçlar";
-    $("#updated-at").textContent = live && lastSync
+    const pill=$("#data-status");
+    pill.classList.toggle("live",loaded && !loadError);
+    pill.lastChild.textContent = loaded
+      ? (loadError ? " Yeniden bağlantı kuruluyor" : " Canlı sonuçlar")
+      : " Canlı veriye bağlanıyor";
+    $("#updated-at").textContent = loaded
       ? "Son güncelleme: " + formatDate(lastSync)
-      : "Gerçek kayıtlar için giriş gerekli";
-    $("#sample-banner").hidden = live;
-    $("#logout-btn").hidden = !live;
+      : "İstatistikler hazırlanıyor…";
+    $("#sample-banner").hidden = loaded && !loadError;
+    $("#load-notice-title").textContent = loadError
+      ? "Veriler şu anda güncellenemiyor"
+      : "Canlı sonuçlara bağlanılıyor…";
+    $("#load-notice-message").textContent = loadError ||
+      "Google tahmin kayıtları yükleniyor. Admin girişi veya şifre gerekmiyor.";
   }
 
   function mainDataset() {
-    if (!$("#hide-tests").checked) return responses.slice();
-    return responses.filter(r => !isTest(r));
+    return $("#hide-tests").checked
+      ? responses.filter(r => !isTest(r))
+      : responses.slice();
   }
 
   function writeStats(dataset) {
@@ -107,9 +97,9 @@
       : girls > boys ? "Şimdilik kız tahminleri biraz daha önde."
       : "Şimdilik erkek tahminleri biraz daha önde.";
 
-    const noteCount = dataset.filter(r => String(r.shortNote||"").trim()).length;
-    const photoCount = dataset.filter(r => isRealDriveUrl(r.photoUrl)).length;
-    const mediaCount = dataset.filter(r => isRealDriveUrl(r.mediaUrl)).length;
+    const noteCount = dataset.filter(r => r.hasNote === true).length;
+    const photoCount = dataset.filter(r => r.hasPhoto === true).length;
+    const mediaCount = dataset.filter(r => r.hasMedia === true).length;
     $("#count-notes").textContent = noteCount;
     $("#count-photos").textContent = photoCount;
     $("#count-media").textContent = mediaCount;
@@ -178,15 +168,6 @@
     });
   }
 
-  function addFileLink(target, url, label) {
-    if (!isRealDriveUrl(url)) return;
-    const anchor=node("a",null,label);
-    anchor.href=url;
-    anchor.target="_blank";
-    anchor.rel="noopener noreferrer";
-    target.append(anchor);
-  }
-
   function renderCard(person) {
     const gender=isGirl(person)?"girl":"boy";
     const card=node("article","response-card");
@@ -204,16 +185,18 @@
     first.append(node("span",null,"İlk içinden geçen"),node("strong",null,person.firstGuess||"Belirtilmedi"));
 
     const note=node("div","response-note");
-    note.append(node("span",null,"BEBEĞİMİZE BIRAKTIĞI MESAJ"));
-    const noteText=node("p",String(person.shortNote||"").trim()?"":"missing",
-      String(person.shortNote||"").trim() || "Yazılı mesaj bırakılmamış.");
+    note.append(node("span",null,"BEBEĞİMİZE KÜÇÜK BİR HATIRA"));
+    const noteText=node("p",person.hasNote?"":"missing",
+      person.hasNote
+        ? "Bebeğimiz için bir mesaj bıraktı. Mesajın metni özel arşivimizde saklanıyor. ♡"
+        : "Yazılı mesaj bırakılmamış.");
     note.append(noteText);
 
     const foot=node("div","response-foot");
-    foot.append(node("span","response-date",formatDate(person.submittedAt)));
+    foot.append(node("span","response-date","Anonim aile tahmini"));
     const media=node("div","media-links");
-    addFileLink(media,person.photoUrl,"📷 Fotoğraf");
-    addFileLink(media,person.mediaUrl,"▶ Video / Ses");
+    if(person.hasPhoto) media.append(node("span","media-badge","📷 Fotoğraf bıraktı"));
+    if(person.hasMedia) media.append(node("span","media-badge","▶ Video / ses bıraktı"));
     if (isTest(person)) media.append(node("span","demo-label","TEST"));
     foot.append(media);
 
@@ -236,8 +219,8 @@
     });
     filtered.sort((a,b)=>{
       if(sort==="name")return String(a.name||"").localeCompare(String(b.name||""),"tr");
-      const t1=parseDate(a.submittedAt);
-      const t2=parseDate(b.submittedAt);
+      const t1=Number(a.sequence)||0;
+      const t2=Number(b.sequence)||0;
       return sort==="oldest"?t1-t2:t2-t1;
     });
 
@@ -250,238 +233,141 @@
     $("#empty-state").hidden=filtered.length>0;
   }
 
-  function renderLocked() {
-    for(const id of ["stat-total","stat-girl","stat-boy","stat-turnout","donut-total","count-notes","count-photos","count-media"]) {
-      $("#"+id).textContent = "—";
-    }
-    $("#girl-percent").textContent = "Özel sonuç";
-    $("#boy-percent").textContent = "Özel sonuç";
-    $("#waiting-label").textContent = "Giriş gerekli";
+
+  function renderPending() {
+    $("#pdf-btn").disabled = true;
+    for(const id of [
+      "stat-total","stat-girl","stat-boy","stat-turnout",
+      "donut-total","count-notes","count-photos","count-media"
+    ]) $("#"+id).textContent = "—";
+    $("#girl-percent").textContent = "Yükleniyor";
+    $("#boy-percent").textContent = "Yükleniyor";
+    $("#waiting-label").textContent = "Güncelleniyor";
     $("#legend-girl").textContent = "—";
     $("#legend-boy").textContent = "—";
     $("#vote-bar-pink").style.width = "0%";
     $("#vote-bar-blue").style.width = "0%";
     $("#vote-donut").style.background = "conic-gradient(#e8e3e7 0 100%)";
-    $("#distribution-insight").textContent = "Gerçek dağılım yalnızca yetkili hesaplara gösterilir.";
-    $("#first-chart").replaceChildren(node("p","no-relatives","İlk tahmin istatistikleri güvenli girişten sonra açılır."));
-    $("#relative-chart").replaceChildren(node("p","no-relatives","Aile katılım bilgileri güvenli girişten sonra açılır."));
-    $("#memory-insight").textContent = "Kısa mesajlar, fotoğraflar ve videolar özel tutuluyor.";
-    $("#response-grid").textContent = "";
-    $("#visible-count").textContent = "Giriş gerekli";
+    $("#distribution-insight").textContent = "Canlı istatistikler hazırlanıyor.";
+    $("#first-chart").replaceChildren(node("p","no-relatives","İlk tahminler yükleniyor…"));
+    $("#relative-chart").replaceChildren(node("p","no-relatives","Katılım istatistikleri yükleniyor…"));
+    $("#memory-insight").textContent = "Fotoğraf ve mesaj sayıları yükleniyor…";
+    $("#response-grid").replaceChildren();
+    $("#visible-count").textContent = "Yükleniyor";
     $("#empty-state").hidden = false;
-    $("#empty-state-title").textContent = "Aile cevapları gizli tutuluyor.";
-    $("#empty-state-description").textContent = "Güncel sonuçları görüntülemek için yetkili hesapla giriş yap.";
+    $("#empty-state-title").textContent = "Tahminler yükleniyor…";
+    $("#empty-state-description").textContent = "Birazdan güncel sonuçları göreceksin.";
   }
 
-  function render(){
+  function render() {
     syncStatus();
-    if(mode !== "live") {
-      renderLocked();
-      return;
-    }
+    if(!loaded) return renderPending();
+    $("#pdf-btn").disabled = false;
     const data=mainDataset();
     writeStats(data);
     writeFirstChart(data);
     writeRelatives(data);
     writeResponses(data);
-    $("#empty-state-title").textContent = "Bu filtreye uygun yanıt yok.";
-    $("#empty-state-description").textContent = "Başka bir isim veya tahmin seçebilirsin.";
+    $("#empty-state-title").textContent = "Bu filtreye uygun tahmin yok.";
+    $("#empty-state-description").textContent = "Başka bir filtre seçebilirsin.";
   }
 
-  function setMessage(text,isError=false) {
-    const el=$("#access-message");
-    el.textContent=text;
-    el.style.color=isError?"#a84050":"#567960";
-  }
+  function fetchPublicResults() {
+    return new Promise((resolve,reject) => {
+      if(!apiUrl) return reject(new Error(
+        "Google kayıt sistemi bağlantısı henüz yapılandırılmamış."
+      ));
+      const callback="__baby_public_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+      const script=document.createElement("script");
+      const url=new URL(apiUrl);
+      url.searchParams.set("action","publicResults");
+      url.searchParams.set("callback",callback);
+      url.searchParams.set("_",String(Date.now()));
 
-  function openAccess(){
-    $("#access-panel").hidden=false;
-    $("#request-code-form").hidden=false;
-    $("#verify-code-form").hidden=true;
-    $("#access-panel").scrollIntoView({behavior:"smooth",block:"start"});
-  }
-
-  function hideAccess(){
-    $("#access-panel").hidden=true;
-    setMessage("");
-  }
-
-  function postAction(fields){
-    return new Promise((resolve,reject)=>{
-      if(!apiUrl)return reject(new Error("Google kayıt bağlantısı henüz kurulmamış."));
-      const requestId="result_"+Date.now()+"_"+Math.random().toString(36).slice(2);
-      const form=document.createElement("form");
-      form.method="POST";
-      form.action=apiUrl;
-      form.target="results-frame";
-      form.hidden=true;
-      Object.entries({...fields,requestId}).forEach(([key,value])=>{
-        const input=document.createElement("input");
-        input.type="hidden";
-        input.name=key;
-        input.value=value==null?"":String(value);
-        form.append(input);
-      });
-      let done=false;
-      const timeout=setTimeout(()=>{
+      let finished=false;
+      const timer=setTimeout(()=>{
         cleanup();
-        reject(new Error("Google bağlantısından yanıt alınamadı. Bağlantıyı ve dağıtımı kontrol et."));
-      },35000);
-      function cleanup(){
-        if(done)return;
-        done=true;
-        clearTimeout(timeout);
-        window.removeEventListener("message",onMessage);
-        form.remove();
+        reject(new Error("Google sonuç sunucusu yanıt vermedi. Bağlantıyı kontrol et."));
+      },18000);
+
+      function cleanup() {
+        if(finished) return;
+        finished=true;
+        clearTimeout(timer);
+        delete window[callback];
+        script.remove();
       }
-      function onMessage(event){
-        const data=event.data;
-        if(!data||data.source!=="baby-form-api"||data.requestId!==requestId)return;
+
+      window[callback]=data=>{
         cleanup();
-        if(data.ok)resolve(data);
-        else reject(new Error(data.error||"İşlem başarısız."));
-      }
-      window.addEventListener("message",onMessage);
-      document.body.append(form);
-      form.submit();
+        if(!data || data.ok !== true){
+          const original = String(data?.error || "");
+          reject(new Error(
+            /Bilinmeyen işlem/i.test(original)
+              ? "Yeni sonuç servisi henüz Google Apps Script'te yayımlanmadı. Kodun yeni sürümünü dağıtmak gerekiyor."
+              : (original || "Sonuç sunucusu geçersiz yanıt verdi.")
+          ));
+        } else if(data.publicVersion !== "anonymous-v1"){
+          reject(new Error("Sonuç servisi güncel değil. Google Apps Script sürümünü yenile."));
+        } else if(!Array.isArray(data.responses) || !Array.isArray(data.participants)){
+          reject(new Error("Sunucunun sonuç listesi eksik."));
+        } else {
+          resolve(data);
+        }
+      };
+
+      script.onerror=()=>{
+        cleanup();
+        reject(new Error("Google sonuç bağlantısı açılamadı. Ağ bağlantını ve Apps Script dağıtımını kontrol et."));
+      };
+
+      script.src=url.toString();
+      document.head.append(script);
     });
   }
 
-  async function loadLive(silent=false){
-    if(!adminToken)throw new Error("Gerçek cevapları görüntülemek için güvenli giriş gerekiyor.");
-    if(polling)return;
-    polling=true;
+  async function refreshResults() {
+    if(busy) return;
+    busy=true;
+    $("#refresh-btn").disabled=true;
     try{
-      const data=await postAction({action:"adminList",adminToken});
-      if(!Array.isArray(data.responses)||!Array.isArray(data.participants)){
-        throw new Error("Sunucudan geçerli sonuç verisi gelmedi.");
-      }
+      const data=await fetchPublicResults();
       responses=data.responses;
       participants=data.participants;
+      loaded=true;
+      loadError="";
       lastSync=Date.now();
-      mode="live";
-      hideAccess();
       render();
     }catch(error){
-      if(/oturum|giriş|session|token/i.test(String(error.message||""))){
-        adminToken="";
-        sessionStorage.removeItem(TOKEN_KEY);
-        mode="locked";
-        responses=[];
-        participants=[];
-        render();
-        $("#access-panel").hidden=false;
-      }
-      if(silent){
-        $("#access-panel").hidden=false;
-        setMessage(error.message || "Sonuçlar yüklenemedi, tekrar dene.",true);
-      } else {
-        throw error;
-      }
+      loadError=String(error?.message || "Sonuçlar alınamadı.");
+      render();
     }finally{
-      polling=false;
+      busy=false;
+      $("#refresh-btn").disabled=false;
     }
   }
 
-  $("#open-access").addEventListener("click",openAccess);
-  $("#close-access").addEventListener("click",hideAccess);
+  $("#refresh-btn").addEventListener("click",refreshResults);
+  $("#retry-results").addEventListener("click",refreshResults);
+  $("#pdf-btn").addEventListener("click",()=>{if(loaded)window.print();});
 
-  $("#request-code-form").addEventListener("submit",async e=>{
-    e.preventDefault();
-    requestedEmail=$("#admin-email").value;
-    const button=$("#request-code-btn");
-    button.disabled=true;
-    setMessage("E-postana kod gönderiliyor…");
-    try{
-      const result=await postAction({action:"requestAdminCode",adminEmail:requestedEmail});
-      setMessage(result.message||"Kodu e-postana gönderdik.");
-      $("#request-code-form").hidden=true;
-      $("#verify-code-form").hidden=false;
-      $("#admin-code").focus();
-    }catch(error){
-      setMessage(error.message,true);
-    }finally{
-      button.disabled=false;
-    }
-  });
-
-  $("#verify-code-form").addEventListener("submit",async e=>{
-    e.preventDefault();
-    const button=$("#verify-code-btn");
-    button.disabled=true;
-    setMessage("Kod kontrol ediliyor…");
-    try{
-      const result=await postAction({
-        action:"verifyAdminCode",
-        adminEmail:requestedEmail,
-        adminCode:$("#admin-code").value.trim()
-      });
-      if(!result.adminToken)throw new Error("Sunucu geçerli oturum bilgisi göndermedi.");
-      adminToken=result.adminToken;
-      sessionStorage.setItem(TOKEN_KEY,adminToken);
-      $("#admin-code").value="";
-      await loadLive();
-    }catch(error){
-      setMessage(error.message,true);
-    }finally{
-      button.disabled=false;
-    }
-  });
-
-  $("#change-email").addEventListener("click",()=>{
-    $("#verify-code-form").hidden=true;
-    $("#request-code-form").hidden=false;
-    $("#admin-code").value="";
-    setMessage("");
-  });
-
-  $("#refresh-btn").addEventListener("click",async()=>{
-    if(mode!=="live"){openAccess();return;}
-    const button=$("#refresh-btn");
-    button.disabled=true;
-    button.textContent="Yenileniyor…";
-    try{
-      await loadLive();
-    }catch(error){
-      openAccess();
-      setMessage(error.message,true);
-    }finally{
-      button.disabled=false;
-      button.textContent="↻ Yenile";
-    }
-  });
-
-  $("#logout-btn").addEventListener("click",async()=>{
-    const previous=adminToken;
-    adminToken="";
-    sessionStorage.removeItem(TOKEN_KEY);
-    responses=samples.slice();
-    participants=samples.map(p=>({name:p.name,relation:p.relation,answered:true}));
-    mode="locked";
-    lastSync=null;
-    render();
-    if(previous){
-      try{await postAction({action:"logoutAdmin",adminToken:previous});}
-      catch(error){/* Local session is already discarded. */}
-    }
-  });
-
-  $("#pdf-btn").addEventListener("click",()=>window.print());
   ["search-input","gender-filter","sort-filter"].forEach(id=>{
-    $("#"+id).addEventListener(id==="search-input"?"input":"change",()=>writeResponses(mainDataset()));
+    $("#"+id).addEventListener(id==="search-input"?"input":"change",()=>{
+      if(loaded) writeResponses(mainDataset());
+    });
   });
   $("#hide-tests").addEventListener("change",render);
 
+  window.addEventListener("storage",event=>{
+    if(event.key==="baby_results_changed_at" && !document.hidden) refreshResults();
+  });
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden) refreshResults();
+  });
+
   render();
-  if(adminToken){
-    $("#updated-at").textContent="Gerçek sonuçlar yükleniyor…";
-    loadLive(true).catch(()=>{});
-  } else {
-    $("#access-panel").hidden=false;
-  }
+  refreshResults();
   setInterval(()=>{
-    if(mode==="live"&&adminToken&&!document.hidden&&!polling){
-      loadLive(true).catch(()=>{});
-    }
+    if(!document.hidden) refreshResults();
   },REFRESH_MS);
 })();
