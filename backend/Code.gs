@@ -362,8 +362,8 @@ function getPublicResults_() {
 }
 
 function isTestEntry_(name,relation) {
-  return /^TEST(?:\\b|\\s*[-:])/i.test(String(name || '').trim()) ||
-    /\\(TEST\\)/i.test(String(relation || ''));
+  return /^TEST(?:\b|\s*[-:])/i.test(String(name || '').trim()) ||
+    /\(TEST\)/i.test(String(relation || ''));
 }
 
 function publicRelationCategory_(raw) {
