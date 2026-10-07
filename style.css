@@ -100,3 +100,13 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
     background-attachment:fixed;
   }
 }
+
+.text-note-option{
+  border-style:solid!important;
+  border-color:rgba(124,85,92,.34)!important;
+  background:linear-gradient(135deg,rgba(247,229,233,.94),rgba(230,238,248,.94))!important;
+}
+.text-note-option .label{
+  font-size:14px;
+  color:var(--accent-dark);
+}
