@@ -200,3 +200,31 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
   .camera-actions .camera-primary{grid-column:1/-1}
   .chosen-preview{align-items:flex-start}
 }
+
+/* Short verified-save workflow */
+.submit-box #submit-status {
+  display:block;
+  min-height:24px;
+  margin:11px auto 0;
+  max-width:670px;
+  color:#845b65;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.55;
+}
+.primary.is-saving {
+  cursor:progress;
+  background:#895e6d;
+  opacity:1;
+}
+.primary.is-saving::before {
+  content:"";
+  width:15px;height:15px;
+  display:inline-block;
+  border:2px solid rgba(255,255,255,.38);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:baby-saving-spin .7s linear infinite;
+}
+@keyframes baby-saving-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.primary.is-saving::before{animation:none}}
