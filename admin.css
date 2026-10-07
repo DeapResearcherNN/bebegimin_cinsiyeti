@@ -206,3 +206,30 @@ html,body{max-width:100%;overflow-x:hidden}
     border-radius:18px;
   }
 }
+
+/* E-posta koduyla yönetici girişi */
+.admin-form select{
+  width:100%;
+  min-width:0;
+  min-height:48px;
+  padding:12px 13px;
+  background:#fff;
+  border:1px solid #dfd4cd;
+  border-radius:13px;
+  color:var(--text);
+  outline:none;
+}
+.admin-form input:focus,.admin-form select:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(124,85,92,.1);
+}
+#admin-code{
+  text-align:center;
+  letter-spacing:.25em;
+  font-size:20px;
+  font-weight:700;
+}
+.admin-form button[disabled]{
+  opacity:.65;
+  cursor:wait;
+}
