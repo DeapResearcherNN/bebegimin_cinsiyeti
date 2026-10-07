@@ -29,8 +29,8 @@
           <h1 id="page-title">Biraz <em>merak,</em><br>çokça <span>sevgi.</span></h1>
           <p>Herkesin bir tahmini var. Peki ailemiz hangi tarafta? Bütün tahminler, mesajlar ve küçük hatıralar burada bir araya geliyor.</p>
           <div class="hero-bottom">
-            <span class="status-pill" id="data-status"><span class="status-dot" aria-hidden="true"></span> Örnek görünüm</span>
-            <span id="updated-at" class="update-time">Tanıtım verileri gösteriliyor</span>
+            <span class="status-pill" id="data-status"><span class="status-dot" aria-hidden="true"></span> Özel sonuçlar</span>
+            <span id="updated-at" class="update-time">Yetkili giriş gerekli</span>
           </div>
         </div>
         <div class="hero-visual" aria-hidden="true">
@@ -50,7 +50,7 @@
         </div>
       </section>
 
-      <section class="sample-banner" id="sample-banner" aria-label="Örnek veriler">
+      <section class="sample-banner" id="sample-banner" aria-label="Gizli sonuçlar için giriş">
         <div class="sample-banner-text">
           <strong>Gerçek sonuçlar henüz açılmadı.</strong>
           <span>Aile cevapları gizli tutuluyor. Gerçek istatistikleri ve kişi kişi cevapları görmek için yetkili oturum aç.</span>
@@ -101,19 +101,19 @@
       <section class="metric-grid" aria-label="Temel istatistikler">
         <article class="metric metric-total">
           <span class="metric-icon">✦</span><span class="metric-label">Toplam tahmin</span>
-          <strong id="stat-total">0</strong><span class="metric-hint">Bebeğimizi merak edenler</span>
+          <strong id="stat-total">—</strong><span class="metric-hint">Bebeğimizi merak edenler</span>
         </article>
         <article class="metric metric-pink">
           <span class="metric-icon">♡</span><span class="metric-label">Kız diyenler</span>
-          <strong id="stat-girl">0</strong><span class="metric-hint" id="girl-percent">Toplamın %0'ı</span>
+          <strong id="stat-girl">—</strong><span class="metric-hint" id="girl-percent">Özel sonuç</span>
         </article>
         <article class="metric metric-blue">
           <span class="metric-icon">☆</span><span class="metric-label">Erkek diyenler</span>
-          <strong id="stat-boy">0</strong><span class="metric-hint" id="boy-percent">Toplamın %0'ı</span>
+          <strong id="stat-boy">—</strong><span class="metric-hint" id="boy-percent">Özel sonuç</span>
         </article>
         <article class="metric metric-sage">
           <span class="metric-icon">✉</span><span class="metric-label">Katılım</span>
-          <strong id="stat-turnout">%0</strong><span class="metric-hint" id="waiting-label">0 kişi bekleniyor</span>
+          <strong id="stat-turnout">—</strong><span class="metric-hint" id="waiting-label">Giriş gerekli</span>
         </article>
       </section>
 
@@ -122,11 +122,11 @@
           <div class="panel-header"><div><span class="eyebrow">BÜYÜK TAHMİN</span><h3>Kız mı, erkek mi?</h3></div><span class="panel-aside">Oy dağılımı</span></div>
           <div class="donut-layout">
             <div class="donut" id="vote-donut" role="img" aria-label="Kız ve erkek tahmin dağılımı">
-              <div class="donut-hole"><span>Toplam</span><strong id="donut-total">0</strong><small>tahmin</small></div>
+              <div class="donut-hole"><span>Toplam</span><strong id="donut-total">—</strong><small>tahmin</small></div>
             </div>
             <div class="donut-legend">
-              <div class="legend-line"><span><i class="legend-dot pink-dot"></i>Kız</span><strong id="legend-girl">0 (%0)</strong></div>
-              <div class="legend-line"><span><i class="legend-dot blue-dot"></i>Erkek</span><strong id="legend-boy">0 (%0)</strong></div>
+              <div class="legend-line"><span><i class="legend-dot pink-dot"></i>Kız</span><strong id="legend-girl">—</strong></div>
+              <div class="legend-line"><span><i class="legend-dot blue-dot"></i>Erkek</span><strong id="legend-boy">—</strong></div>
               <div class="vote-bar" aria-hidden="true"><span id="vote-bar-pink"></span><span id="vote-bar-blue"></span></div>
               <p id="distribution-insight">İlk tahminlerimizi bekliyoruz.</p>
             </div>
@@ -146,9 +146,9 @@
         <article class="panel details-panel">
           <div class="panel-header"><div><span class="eyebrow">KÜÇÜK BİR HATIRA</span><h3>Sayıların ötesinde</h3></div></div>
           <div class="memory-counts">
-            <div><strong id="count-notes">0</strong><span>Yazılı mesaj</span></div>
-            <div><strong id="count-photos">0</strong><span>Fotoğraf</span></div>
-            <div><strong id="count-media">0</strong><span>Video / ses</span></div>
+            <div><strong id="count-notes">—</strong><span>Yazılı mesaj</span></div>
+            <div><strong id="count-photos">—</strong><span>Fotoğraf</span></div>
+            <div><strong id="count-media">—</strong><span>Video / ses</span></div>
           </div>
           <div class="insight-box"><span class="sparkle">✧</span><p id="memory-insight">Bebeğimiz için bırakılan güzel sözler burada çoğalacak.</p></div>
         </article>
@@ -157,7 +157,7 @@
       <section class="responses" aria-labelledby="responses-title">
         <div class="responses-heading">
           <div><span class="eyebrow">TEK TEK BÜTÜN TAHMİNLER</span><h2 id="responses-title">Kim, ne demiş?</h2><p>Birbirinden farklı tahminler, aynı güzel heyecan.</p></div>
-          <span class="count-label" id="visible-count">0 cevap</span>
+          <span class="count-label" id="visible-count">Giriş gerekli</span>
         </div>
         <div class="filters">
           <label class="search-box" for="search-input"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="İsim, yakınlık veya not ara…" autocomplete="off"></label>
