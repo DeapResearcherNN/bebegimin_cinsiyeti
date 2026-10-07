@@ -27,10 +27,10 @@
         <div class="hero-copy">
           <div class="eyebrow"><span class="eyebrow-icon">✦</span> BEBEĞİMİZ İÇİN AİLE TAHMİNLERİ</div>
           <h1 id="page-title">Biraz <em>merak,</em><br>çokça <span>sevgi.</span></h1>
-          <p>Herkesin bir tahmini var. Peki ailemiz hangi tarafta? Bütün tahminler, mesajlar ve küçük hatıralar burada bir araya geliyor.</p>
+          <p>Herkesin bir tahmini var. Peki ailemiz hangi tarafta? Canlı istatistikler ve anonim tahminler burada bir araya geliyor.</p>
           <div class="hero-bottom">
-            <span class="status-pill" id="data-status"><span class="status-dot" aria-hidden="true"></span> Özel sonuçlar</span>
-            <span id="updated-at" class="update-time">Yetkili giriş gerekli</span>
+            <span class="status-pill" id="data-status"><span class="status-dot" aria-hidden="true"></span> Canlı sonuçlar</span>
+            <span id="updated-at" class="update-time">Bağlantı kuruluyor…</span>
           </div>
         </div>
         <div class="hero-visual" aria-hidden="true">
@@ -50,51 +50,20 @@
         </div>
       </section>
 
-      <section class="sample-banner" id="sample-banner" aria-label="Gizli sonuçlar için giriş">
+      <section class="sample-banner" id="sample-banner" aria-label="Canlı veri bağlantısı">
         <div class="sample-banner-text">
-          <strong>Gerçek sonuçlar henüz açılmadı.</strong>
-          <span>Aile cevapları gizli tutuluyor. Gerçek istatistikleri ve kişi kişi cevapları görmek için yetkili oturum aç.</span>
+          <strong id="load-notice-title">Canlı sonuçlar yükleniyor…</strong>
+          <span id="load-notice-message">Google kayıt sistemiyle bağlantı kuruluyor. Giriş yapmana gerek yok.</span>
         </div>
-        <button type="button" class="button button-dark" id="open-access">Gerçek sonuçları aç <span aria-hidden="true">→</span></button>
+        <button type="button" class="button button-dark" id="retry-results">↻ Tekrar dene</button>
       </section>
 
-      <section class="access-panel" id="access-panel" hidden aria-labelledby="access-title">
-        <div class="access-heading">
-          <div>
-            <div class="eyebrow">ÖZEL AİLE KAYITLARI</div>
-            <h2 id="access-title">Gerçek sonuçlara eriş</h2>
-            <p>Özel aile cevapları yalnızca yetkili hesaplardan görüntülenebilir. Daha önce bu sekmede yönetici girişi yaptıysan sonuçlar otomatik yüklenir. Alternatif olarak Google hesabınla sonuç tablosunu doğrudan açabilirsin.</p>
-            <p><a href="https://docs.google.com/spreadsheets/d/1Tgrd_sU1aOu9NKpFsv8_iM8Hh2rBifHbIqFSlDI5Cys/edit#gid=625001" target="_blank" rel="noopener noreferrer">Google hesabınla canlı sonuçları aç ↗</a></p>
-          </div>
-          <button type="button" class="icon-button" id="close-access" aria-label="Kapat">✕</button>
-        </div>
-        <form id="request-code-form" class="access-form">
-          <label for="admin-email">E-posta hesabını seç</label>
-          <div class="access-fields">
-            <select id="admin-email" required>
-              <option value="naimegunduz75@gmail.com">Naime • naimegunduz75@gmail.com</option>
-              <option value="serhan.narli@gmail.com">Serhan • serhan.narli@gmail.com</option>
-            </select>
-            <button type="submit" class="button button-dark" id="request-code-btn">Kod gönder</button>
-          </div>
-        </form>
-        <form id="verify-code-form" class="access-form" hidden>
-          <label for="admin-code">E-postana gelen 6 haneli kod</label>
-          <div class="access-fields">
-            <input id="admin-code" type="text" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" required>
-            <button type="submit" class="button button-dark" id="verify-code-btn">Sonuçları göster</button>
-          </div>
-          <button type="button" id="change-email" class="text-button">Başka hesap seç</button>
-        </form>
-        <p id="access-message" role="status" aria-live="polite"></p>
-      </section>
-
-      <section class="results-intro">
+            <section class="results-intro">
         <div><span class="eyebrow">SAYILAR NE DİYOR?</span><h2>Ailemizin tahmin tablosu</h2></div>
         <div class="result-actions">
           <button type="button" class="button button-outline" id="refresh-btn">↻ Yenile</button>
           <button type="button" class="button button-outline" id="pdf-btn">⇩ PDF / Yazdır</button>
-          <button type="button" class="button button-outline" id="logout-btn" hidden>Oturumu kapat</button>
+          
         </div>
       </section>
 
@@ -144,7 +113,7 @@
           <div id="relative-chart" class="relative-list"></div>
         </article>
         <article class="panel details-panel">
-          <div class="panel-header"><div><span class="eyebrow">KÜÇÜK BİR HATIRA</span><h3>Sayıların ötesinde</h3></div></div>
+          <div class="panel-header"><div><span class="eyebrow">KÜÇÜK BİR HATIRA</span><h3>Küçük hatıralar</h3></div></div>
           <div class="memory-counts">
             <div><strong id="count-notes">—</strong><span>Yazılı mesaj</span></div>
             <div><strong id="count-photos">—</strong><span>Fotoğraf</span></div>
@@ -156,14 +125,14 @@
 
       <section class="responses" aria-labelledby="responses-title">
         <div class="responses-heading">
-          <div><span class="eyebrow">TEK TEK BÜTÜN TAHMİNLER</span><h2 id="responses-title">Kim, ne demiş?</h2><p>Birbirinden farklı tahminler, aynı güzel heyecan.</p></div>
+          <div><span class="eyebrow">TEK TEK BÜTÜN TAHMİNLER</span><h2 id="responses-title">Ailemiz ne tahmin ediyor?</h2><p>İsimler, mesajların metni ve özel fotoğraflar gizli tutulur. Tahminleri anonim olarak görebilirsin.</p></div>
           <span class="count-label" id="visible-count">Giriş gerekli</span>
         </div>
         <div class="filters">
-          <label class="search-box" for="search-input"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="İsim, yakınlık veya not ara…" autocomplete="off"></label>
+          <label class="search-box" for="search-input"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Tahminlerde veya yakınlıkta ara…" autocomplete="off"></label>
           <label class="select-label" for="gender-filter"><span>Tahmin</span><select id="gender-filter"><option value="all">Hepsi</option><option value="girl">Kız diyenler</option><option value="boy">Erkek diyenler</option></select></label>
           <label class="select-label" for="sort-filter"><span>Sırala</span><select id="sort-filter"><option value="newest">En yeni</option><option value="oldest">En eski</option><option value="name">İsme göre</option></select></label>
-          <label class="check-label"><input type="checkbox" id="hide-tests"><span>Testleri gizle</span></label>
+          <label class="check-label"><input type="checkbox" id="hide-tests" checked><span>Testleri gizle</span></label>
         </div>
         <div id="response-grid" class="response-grid" aria-live="polite"></div>
         <div id="empty-state" class="empty-state" hidden><div>♡</div><strong id="empty-state-title">Henüz görüntülenecek yanıt yok.</strong><p id="empty-state-description">Sonuçlar yüklenince burada görünecek.</p></div>
@@ -171,13 +140,12 @@
 
       <footer>
         <div>♡ <strong>Naime &amp; Serhan</strong><span> · Bebeğimiz için bir aile hatırası</span></div>
-        <p>Özel cevaplar herkese açık yayınlanmaz. Canlı görünüm, yetkili oturumla Google Drive'dan okunur.</p>
+        <p>Canlı istatistikler herkese açıktır. İsimler, kişisel notlar ve medya dosyaları yalnızca özel arşivde saklanır.</p>
       </footer>
     </main>
   </div>
-  <iframe id="results-frame" name="results-frame" hidden title="Güvenli kayıt bağlantısı"></iframe>
   <script src="./config.js"></script>
-  <script src="./sonuclar.js?v=4"></script>
+  <script src="./sonuclar.js?v=6"></script>
   <script src="./sonuclar-yenile.js?v=1"></script>
 </body>
 </html>
