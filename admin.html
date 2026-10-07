@@ -19,16 +19,28 @@
       <section id="admin-login" class="admin-login">
         <p class="eyebrow">YÖNETİCİ GİRİŞİ</p>
         <h1>Admin paneli</h1>
-        <p class="admin-copy">Cevapları, dosyaları ve katılımcı durumlarını yalnızca doğru admin şifresiyle görüntüleyebilirsin.</p>
+        <p class="admin-copy">Yalnızca Naime veya Serhan’ın Google e-posta adresine gönderilen tek kullanımlık kodla giriş yapılır. Ayrı bir admin şifresi gerekmez.</p>
 
-        <form id="login-form" class="admin-form">
-          <label>
-            <span>Admin şifresi</span>
-            <input id="admin-password" type="password" autocomplete="current-password" required>
+        <form id="request-code-form" class="admin-form">
+          <label for="admin-email">
+            <span>Hangi hesaba kod gönderelim?</span>
+            <select id="admin-email" required>
+              <option value="naimegunduz75@gmail.com">Naime - naimegunduz75@gmail.com</option>
+              <option value="serhan.narli@gmail.com">Serhan - serhan.narli@gmail.com</option>
+            </select>
           </label>
-          <button class="primary" type="submit">Giriş yap</button>
+          <button class="primary" id="send-code-btn" type="submit">Giriş kodunu gönder</button>
         </form>
-        <p id="login-status" class="admin-status"></p>
+
+        <form id="verify-code-form" class="admin-form" hidden>
+          <label for="admin-code">
+            <span>E-postana gelen 6 haneli kod</span>
+            <input id="admin-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
+          </label>
+          <button class="primary" id="verify-code-btn" type="submit">Kodu doğrula ve giriş yap</button>
+          <button class="secondary" id="change-email-btn" type="button">Başka hesap seç</button>
+        </form>
+        <p id="login-status" class="admin-status" role="status" aria-live="polite"></p>
       </section>
 
       <section id="dashboard" class="dashboard" hidden>
@@ -40,6 +52,7 @@
           <div class="admin-actions">
             <a id="sheet-link" class="secondary admin-link" href="#" target="_blank" rel="noopener">Google Sheet'i aç</a>
             <button id="refresh-btn" class="secondary" type="button">Yenile</button>
+            <button id="logout-btn" class="secondary" type="button">Çıkış yap</button>
           </div>
         </div>
 
