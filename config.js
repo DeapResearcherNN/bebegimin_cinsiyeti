@@ -1,3 +1,3 @@
 window.BABY_APP_CONFIG = {
-  apiUrl: "https://script.google.com/macros/s/AKfycbxc-Q3FCLmUPvU6ag1s_t7PkUeC_eiJzVmh9A7K6pl39sINIhNORG0ZWdCd1ddFwgTB/exec"
+  apiUrl: "https://script.google.com/macros/s/AKfycbyG4isdL2l9jQZiag6NOfKxlnBSOq9CUfyTc6fnEzOteqtWX0vbhtMKHv9nIhfKgeo-/exec"
 };
