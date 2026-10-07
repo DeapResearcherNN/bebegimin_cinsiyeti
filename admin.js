@@ -17,6 +17,57 @@
   let adminToken = sessionStorage.getItem(SESSION_KEY) || "";
   let requestedEmail = "";
 
+  function checkDeployment() {
+    return new Promise((resolve, reject) => {
+      if (!apiUrl) {
+        reject(new Error("Google kayıt sisteminin bağlantı adresi bulunamadı."));
+        return;
+      }
+
+      const callback = "__baby_health_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+      const script = document.createElement("script");
+      const url = new URL(apiUrl);
+      url.searchParams.set("action", "health");
+      url.searchParams.set("callback", callback);
+      url.searchParams.set("_", Date.now());
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error("Google Apps Script'e ulaşılamadı. Dağıtımın erişimi 'Herkes' olmalı; adresi ve dağıtımı kontrol et."));
+      }, 12000);
+
+      function cleanup() {
+        clearTimeout(timeout);
+        delete window[callback];
+        script.remove();
+      }
+
+      window[callback] = data => {
+        cleanup();
+
+        if (!data || !data.ok) {
+          reject(new Error((data && data.error) || "Google Apps Script yanıtı geçersiz."));
+        } else if (data.authVersion !== "email-otp-v2") {
+          reject(new Error(
+            "Google Apps Script'in yayınlanan sürümü eski. " +
+            "GitHub'daki güncel backend/Code.gs kodunu Apps Script'e koy. " +
+            "Ardından Dağıt → Dağıtımları yönet → Düzenle → Yeni sürüm → Dağıt seç."
+          ));
+        } else {
+          resolve(true);
+        }
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("Google Apps Script bağlantısı açılamadı. Dağıtım ayarlarını kontrol et."));
+      };
+
+      script.src = url.toString();
+      document.head.appendChild(script);
+    });
+  }
+
   function postAction(fields) {
     return new Promise((resolve, reject) => {
       if (!apiUrl) {
@@ -146,6 +197,7 @@
     button.disabled = true;
 
     try {
+      await checkDeployment();
       const data = await postAction({
         action: "requestAdminCode",
         adminEmail: requestedEmail
@@ -254,10 +306,15 @@
     });
   });
 
-  if (adminToken) {
-    loadDashboard().catch(error => {
-      clearSession();
-      showLogin("Oturumun süresi doldu. E-posta adresini seçerek yeni kod al.");
-    });
-  }
+  checkDeployment().then(() => {
+    if (adminToken) {
+      return loadDashboard().catch(error => {
+        clearSession();
+        showLogin("Oturumun süresi doldu. E-posta adresini seçerek yeni kod al.");
+      });
+    }
+    loginStatus.textContent = "Google bağlantısı hazır. Hesap seçip giriş kodu isteyebilirsin.";
+  }).catch(error => {
+    loginStatus.textContent = error.message;
+  });
 })();
