@@ -1,34 +1,57 @@
-# Google Apps Script backend kurulumu
+# Aile tahminleri: Google Drive ve yöneticiler için e-posta doğrulaması
 
-Bu klasördeki `Code.gs` dosyası, GitHub Pages üzerindeki aile sitesinin güvenli arka ucudur.
+Bu projede aile formu GitHub Pages üzerinden yayınlanır. Yanıtlar Google Sheet'e,
+fotoğraf ve ses/video dosyaları Google Drive'a kaydedilir.
 
-## Ne yapar?
+## Yönetici girişi nasıl çalışır?
 
-- Cevapları Google Sheet'e yazar.
-- Aynı kişinin ikinci kez cevap göndermesini engeller.
-- Fotoğrafları Drive > Fotoğraflar klasörüne kaydeder.
-- Video/ses dosyalarını Drive > Video-Ses klasörüne kaydeder.
-- Her yanıt için JSON yedeğini Drive > Yedekler klasörüne yazar.
-- Naime'ye Drive erişimi verir.
-- Yeni cevap geldiğinde Naime ve Serhan'a e-posta bildirimi yollar.
-- Admin sayfasına cevapları ve katılımcı durumlarını verir.
+- Aile formunda hiçbir şifre yoktur.
+- Admin sayfasında Naime veya Serhan seçilir.
+- Seçilen Google e-posta adresine 6 haneli, 10 dakika geçerli tek kullanımlık kod gönderilir.
+- Kod doğrulanırsa yalnızca o tarayıcı sekmesinde 6 saatlik yönetici oturumu açılır.
+- Şifreler ve oturum anahtarları **GitHub koduna yazılmaz**. Oturum anahtarı yalnızca tarayıcı
+  oturumunda ve sunucunun geçici önbelleğinde tutulur.
+- Kodun aynı anda 5 kez yanlış denenmesi engellenir. Kod gönderimi sıklık sınırına tabidir.
+- Giriş yapabilecek tek hesaplar: naimegunduz75@gmail.com ve serhan.narli@gmail.com.
 
-## Bir defalık kurulum
+**Bu sistem Google hesabı OAuth düğmesi kullanmaz.**
+Google e-posta adreslerinin sahipliğini e-postaya gönderilen tek kullanımlık kodla doğrular.
 
-1. Google Sheet'i aç:
-   Bebeğimiz İçin Aile Tahminleri - Cevaplar
-2. Uzantılar > Apps Script seç.
-3. Varsayılan Code.gs içeriğini silip bu dosyanın içeriğini yapıştır.
-4. Apps Script > Project Settings > Script Properties bölümünde iki gizli değer ekle:
-   - FAMILY_CODE = aile üyelerine vereceğiniz ortak şifre
-   - ADMIN_PASSWORD = yalnızca Naime/Serhan'ın bileceği güçlü admin şifresi
-5. `setupSharing` fonksiyonunu editörden bir kez çalıştır ve Google izinlerini onayla.
-6. Deploy > New deployment > Web app:
-   - Execute as: Me
-   - Who has access: Anyone
-7. Deploy et ve `/exec` ile biten Web App URL'sini kopyala.
-8. Bu URL'yi ChatGPT'ye gönder. `config.js` dosyasındaki apiUrl alanı güncellenince site merkezi kayıt sistemine geçer.
+## Halihazırda dağıtılmış Apps Script'i güncellemek (yeni URL gerekmez)
 
-## Güvenlik
+1. Google Apps Script projesini aç: https://script.google.com
+2. Projedeki `Kod.gs` dosyasının tüm içeriğini seçip sil.
+3. GitHub'daki `backend/Code.gs` dosyasının **tamamını** oraya kopyala.
+4. **Kaydet** (`Ctrl + S`).
+5. Sağ üstte **Dağıt → Dağıtımları yönet** seç.
+6. Mevcut web uygulaması dağıtımını seç ve **Düzenle (kalem simgesi)** tıkla.
+7. **Sürüm → Yeni sürüm** seçip tekrar **Dağıt** de.
+8. Google yeni e-posta gönderim izinleri isterse kodu kontrol ettikten sonra onayla.
+9. Eski `/exec` URL'si aynı kalır; `config.js` zaten mevcut dağıtım URL'sine bağlıdır.
 
-Şifreleri GitHub'a yazmayın. Repo public olduğu için sadece Script Properties'te tutulmalıdır.
+Artık `ADMIN_PASSWORD` veya `FAMILY_CODE` Script Properties gerekmez.
+Önceden eklenmişlerse kaldırılabilir. **Kod hiçbir Google hesap parolasını istemez.**
+
+## Drive paylaşımı
+
+Cevaplar tablosu Naime'ye düzenleyici olarak paylaşılmıştır.
+Ama fotoğraf/video klasörleri Serhan'ın Drive hesabında oluşturulmuştur.
+Bunların da Apps Script'i çalıştıran Naime tarafından erişilebilir olması gerekir.
+
+Serhan kendi hesabında şu klasörü açmalıdır:
+https://drive.google.com/drive/folders/1r9IoeRl2OEFVbKoFfumKZeaPaVCFLz05
+
+**Paylaş → naimegunduz75@gmail.com → Düzenleyici** yapmalıdır.
+Bu yapılmazsa Naime hesabından çalışan Apps Script fotoğraf/video yükleyemeyebilir.
+
+## Güvenlik sınırları
+
+- Aile formu şifresiz olduğu için linke ulaşan herhangi biri yanıt göndermeyi deneyebilir.
+- Aynı ad ve aynı yakınlıkla ikinci cevap engellenir; kimlik doğrulaması olmadığından
+  farklı isim kullanılarak bu kontrol atlatılabilir.
+- Katılımcı listesini admin ekranından oluşturup `Sadece listedekiler` modunu açmak
+  istenmeyen yanıtları azaltır ama güçlü kimlik doğrulaması yerine geçmez.
+- GitHub deposu ve site herkese açıktır. Gerçek admin oturumu ve kayıtların görüntülenmesi
+  sunucu tarafında doğrulanmalıdır.
+- Google Drive izinleri cevap ve yüklenen dosyaları yalnızca yetkili hesaplarda tutmalıdır.
+- Cevap kaydedildikten sonra bildirim e-postasında hata oluşursa kayıt iptal edilmez.
