@@ -1,286 +1,97 @@
+
 (() => {
-  const apiUrl = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.apiUrl) || "";
-  const SESSION_KEY = "bebegimin_cinsiyeti_admin_session";
-
-  const login = document.querySelector("#admin-login");
-  const dashboard = document.querySelector("#dashboard");
-  const requestForm = document.querySelector("#request-code-form");
-  const verifyForm = document.querySelector("#verify-code-form");
-  const emailField = document.querySelector("#admin-email");
-  const codeField = document.querySelector("#admin-code");
-  const loginStatus = document.querySelector("#login-status");
-  const participantForm = document.querySelector("#participant-form");
-  const participantList = document.querySelector("#participant-list");
-  const responseBody = document.querySelector("#response-body");
-  const settingsStatus = document.querySelector("#settings-status");
-  const serviceTestLink = document.querySelector("#service-test-link");
-  if (serviceTestLink && apiUrl) {
-    const test = new URL(apiUrl);
-    test.searchParams.set("action", "health");
-    test.searchParams.set("callback", "siteTest");
-    serviceTestLink.href = test.toString();
-    serviceTestLink.hidden = false;
-  }
-
-
-  let adminToken = sessionStorage.getItem(SESSION_KEY) || "";
-  let requestedEmail = "";
-
-  async function checkDeployment() {
-    const data = await window.BabyApi.checkHealth();
-    if (data.authVersion !== "email-otp-v2") {
-      throw new Error("Yönetim servisi güncel değil. Apps Script dağıtımını yeni sürümle güncelle.");
+  "use strict";
+  const $=selector=>document.querySelector(selector);
+  const SESSION_KEY="bebegimin_cinsiyeti_admin_session";
+  let adminToken="";
+  try{adminToken=sessionStorage.getItem(SESSION_KEY)||"";}catch(ignored){}
+  const post=fields=>window.BabyApi.post(fields);
+  function clearSession(){adminToken="";try{sessionStorage.removeItem(SESSION_KEY);}catch(ignored){}}
+  function showLogin(message=""){$("#dashboard").hidden=true;$("#admin-login").hidden=false;$("#login-status").textContent=message;}
+  function render(data){
+    const responses=data.responses||[],participants=data.participants||[];
+    for(const [selector,value]of [
+      ["#stat-total",responses.length],
+      ["#stat-girl",responses.filter(r=>String(r.gender).includes("Kız")).length],
+      ["#stat-boy",responses.filter(r=>String(r.gender).includes("Erkek")).length],
+      ["#stat-pending",participants.filter(p=>p.active&&!p.answered).length]
+    ])$(selector).textContent=String(value);
+    $("#participant-list").replaceChildren();
+    for(const p of participants){
+      const span=document.createElement("span");span.className="participant-chip"+(p.answered?" done":"");
+      span.textContent=p.name+" · "+p.relation+(p.answered?" ✓":"");$("#participant-list").append(span);
+    }
+    $("#response-body").replaceChildren();
+    for(const r of responses){
+      const tr=document.createElement("tr");
+      for(const value of [r.name,r.relation,r.gender,r.firstGuess,r.shortNote||"—"]){
+        const td=document.createElement("td");td.textContent=value||"—";tr.append(td);
+      }
+      for(const kind of ["photo","media"]){
+        const td=document.createElement("td");
+        if(kind==="photo"?r.hasPhoto:r.hasMedia){
+          const button=document.createElement("button");button.type="button";
+          button.textContent=kind==="photo"?"Fotoğrafı indir":"Dosyayı indir";
+          button.addEventListener("click",async()=>{
+            button.disabled=true;
+            try{await window.BabyApi.openMedia(r.recordId,kind,adminToken);}
+            catch(error){$("#settings-status").textContent=error.message;}
+            finally{button.disabled=false;}
+          });td.append(button);
+        }else td.textContent="—";
+        tr.append(td);
+      }
+      const time=document.createElement("td"),date=new Date(r.submittedAt);
+      time.textContent=Number.isFinite(date.getTime())?new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium",timeStyle:"short"}).format(date):"—";
+      tr.append(time);$("#response-body").append(tr);
     }
   }
-
-  function postAction(fields) {
-    return new Promise((resolve, reject) => {
-      if (!apiUrl) {
-        reject(new Error("Google kayıt sistemi henüz bağlanmadı."));
-        return;
-      }
-
-      const requestId = "baby_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = apiUrl;
-      form.target = "api-frame";
-      form.hidden = true;
-
-      Object.entries({...fields, requestId}).forEach(([name, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        input.value = value == null ? "" : String(value);
-        form.appendChild(input);
-      });
-
-      const timer = setTimeout(() => {
-        cleanup();
-        reject(new Error("Sunucu yanıt vermedi. Apps Script dağıtımını kontrol et."));
-      }, 40000);
-
-      function onMessage(event) {
-        if (!window.BabyApi.isTrustedOrigin(event.origin)) return;
-        const data = event.data;
-        if (!data || data.source !== "baby-form-api" || data.requestId !== requestId) return;
-        cleanup();
-        if (data.ok) resolve(data);
-        else reject(new Error(data.error || "İşlem başarısız."));
-      }
-
-      function cleanup() {
-        clearTimeout(timer);
-        window.removeEventListener("message", onMessage);
-        form.remove();
-      }
-
-      window.addEventListener("message", onMessage);
-      document.body.appendChild(form);
-      form.submit();
-    });
+  async function loadDashboard(){
+    const data=await post({action:"adminList",adminToken});render(data);
+    $("#admin-login").hidden=true;$("#dashboard").hidden=false;$("#login-status").textContent="";
   }
-
-  function setText(selector, value) {
-    document.querySelector(selector).textContent = String(value ?? "");
-  }
-
-  function showLogin(message = "") {
-    dashboard.hidden = true;
-    login.hidden = false;
-    loginStatus.textContent = message;
-  }
-
-  function clearSession() {
-    adminToken = "";
-    sessionStorage.removeItem(SESSION_KEY);
-  }
-
-  function render(data) {
-    const responses = data.responses || [];
-    const participants = data.participants || [];
-
-    setText("#stat-total", responses.length);
-    setText("#stat-girl", responses.filter(r => String(r.gender).includes("Kız")).length);
-    setText("#stat-boy", responses.filter(r => String(r.gender).includes("Erkek")).length);
-    setText("#stat-pending", participants.filter(p => !p.answered).length);
-
-    document.querySelector("#sheet-link").href = data.sheetUrl || "#";
-
-    participantList.textContent = "";
-    participants.forEach(p => {
-      const span = document.createElement("span");
-      span.className = "participant-chip" + (p.answered ? " done" : "");
-      span.textContent = p.name + " · " + p.relation + (p.answered ? " ✓" : "");
-      participantList.appendChild(span);
-    });
-
-    responseBody.textContent = "";
-    responses.forEach(r => {
-      const tr = document.createElement("tr");
-
-      [r.name, r.relation, r.gender, r.firstGuess, r.shortNote || "—"].forEach(v => {
-        const td = document.createElement("td");
-        td.textContent = v || "—";
-        tr.appendChild(td);
-      });
-
-      [r.photoUrl, r.mediaUrl].forEach((url, index) => {
-        const td = document.createElement("td");
-        if (url && /^https:\/\/drive\.google\.com\//.test(url)) {
-          const link = document.createElement("a");
-          link.href = url;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.textContent = index === 0 ? "Fotoğrafı aç" : "Dosyayı aç";
-          td.appendChild(link);
-        } else {
-          td.textContent = "—";
-        }
-        tr.appendChild(td);
-      });
-
-      const time = document.createElement("td");
-      time.textContent = r.submittedAt || "—";
-      tr.appendChild(time);
-      responseBody.appendChild(tr);
-    });
-  }
-
-  async function loadDashboard() {
-    const data = await postAction({action: "adminList", adminToken});
-    render(data);
-    loginStatus.textContent = "";
-    login.hidden = true;
-    dashboard.hidden = false;
-  }
-
-  requestForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    requestedEmail = emailField.value;
-    loginStatus.textContent = "E-postaya kod gönderiliyor…";
-    const button = document.querySelector("#send-code-btn");
-    button.disabled = true;
-
-    try {
-      await checkDeployment();
-      const data = await postAction({
-        action: "requestAdminCode",
-        adminEmail: requestedEmail
-      });
-      requestForm.hidden = true;
-      verifyForm.hidden = false;
-      loginStatus.textContent = data.message || "E-postanı kontrol et.";
-      codeField.focus();
-    } catch (error) {
-      loginStatus.textContent = error.message;
-    } finally {
-      button.disabled = false;
-    }
-  });
-
-  verifyForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    const button = document.querySelector("#verify-code-btn");
-    button.disabled = true;
-    loginStatus.textContent = "Kod kontrol ediliyor…";
-
-    try {
-      const result = await postAction({
-        action: "verifyAdminCode",
-        adminEmail: requestedEmail,
-        adminCode: codeField.value.trim()
-      });
-      adminToken = result.adminToken;
-      sessionStorage.setItem(SESSION_KEY, adminToken);
-      codeField.value = "";
+  $("#admin-password-form").addEventListener("submit",async event=>{
+    event.preventDefault();const button=$("#admin-login-btn");if(button.disabled)return;
+    button.disabled=true;$("#login-status").textContent="Giriş yapılıyor…";
+    try{
+      const result=await post({action:"adminLogin",password:$("#admin-password").value});
+      $("#admin-password").value="";adminToken=result.adminToken;
+      try{sessionStorage.setItem(SESSION_KEY,adminToken);}catch(ignored){}
       await loadDashboard();
-    } catch (error) {
-      loginStatus.textContent = error.message;
-    } finally {
-      button.disabled = false;
-    }
+    }catch(error){clearSession();showLogin(error.message||"Giriş yapılamadı.");}
+    finally{button.disabled=false;}
   });
-
-  document.querySelector("#change-email-btn").addEventListener("click", () => {
-    verifyForm.hidden = true;
-    requestForm.hidden = false;
-    codeField.value = "";
-    loginStatus.textContent = "";
+  $("#logout-btn").addEventListener("click",async()=>{
+    const previous=adminToken;clearSession();showLogin("Çıkış yapıldı.");
+    try{await post({action:"logoutAdmin",adminToken:previous});}catch(ignored){}
   });
-
-  document.querySelector("#logout-btn").addEventListener("click", async () => {
-    const oldToken = adminToken;
-    clearSession();
-    verifyForm.hidden = true;
-    requestForm.hidden = false;
-    showLogin("Bu tarayıcıdaki yönetici oturumundan çıkıldı.");
-
-    if (oldToken) {
-      try {
-        await postAction({action: "logoutAdmin", adminToken: oldToken});
-      } catch (error) {
-        loginStatus.textContent = "Yerel oturum kapandı, ancak sunucu oturumunu kapatırken sorun oluştu.";
-      }
-    }
+  $("#refresh-btn").addEventListener("click",async()=>{
+    const button=$("#refresh-btn");button.disabled=true;
+    try{await loadDashboard();}catch(error){
+      $("#settings-status").textContent=error.message;
+      if(/oturum|giriş/i.test(error.message)){clearSession();showLogin(error.message);}
+    }finally{button.disabled=false;}
   });
-
-  document.querySelector("#refresh-btn").addEventListener("click", () => {
-    loadDashboard().catch(error => {
-      settingsStatus.textContent = error.message;
-      if (/oturum|giriş/i.test(error.message)) {
-        clearSession();
-        showLogin("Oturum süren doldu. Yeniden kod al.");
-      }
-    });
+  $("#participant-form").addEventListener("submit",async event=>{
+    event.preventDefault();const form=event.currentTarget,button=form.querySelector("button");if(button.disabled)return;
+    button.disabled=true;
+    try{
+      const fd=new FormData(form);
+      await post({action:"adminAddParticipant",adminToken,name:fd.get("name"),relation:fd.get("relation")});
+      form.reset();await loadDashboard();$("#settings-status").textContent="Katılımcı eklendi.";
+    }catch(error){$("#settings-status").textContent=error.message;}
+    finally{button.disabled=false;}
   });
-
-  participantForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    const fd = new FormData(participantForm);
-    settingsStatus.textContent = "";
-
-    try {
-      await postAction({
-        action: "adminAddParticipant",
-        adminToken,
-        name: fd.get("name"),
-        relation: fd.get("relation")
-      });
-      participantForm.reset();
-      await loadDashboard();
-    } catch (error) {
-      settingsStatus.textContent = error.message;
-    }
-  });
-
-  document.querySelectorAll(".setting-btn").forEach(button => {
-    button.addEventListener("click", async () => {
-      settingsStatus.textContent = "";
-      try {
-        const result = await postAction({
-          action: "adminSetSetting",
-          adminToken,
-          key: button.dataset.key,
-          value: button.dataset.value
-        });
-        settingsStatus.textContent = result.message || "Ayar kaydedildi.";
-        await loadDashboard();
-      } catch (error) {
-        settingsStatus.textContent = error.message;
-      }
-    });
-  });
-
-  checkDeployment().then(() => {
-    if (adminToken) {
-      return loadDashboard().catch(error => {
-        clearSession();
-        showLogin("Oturumun süresi doldu. E-posta adresini seçerek yeni kod al.");
-      });
-    }
-    loginStatus.textContent = "Google bağlantısı hazır. Hesap seçip giriş kodu isteyebilirsin.";
-  }).catch(error => {
-    loginStatus.textContent = error.message;
-  });
+  document.querySelectorAll(".setting-btn").forEach(button=>button.addEventListener("click",async()=>{
+    button.disabled=true;
+    try{
+      const result=await post({action:"adminSetSetting",adminToken,key:button.dataset.key,value:button.dataset.value});
+      await loadDashboard();$("#settings-status").textContent=result.message;
+    }catch(error){$("#settings-status").textContent=error.message;}
+    finally{button.disabled=false;}
+  }));
+  window.BabyApi.checkHealth().then(async data=>{
+    if(!data.adminReady)throw new Error("Yönetici şifresi henüz yapılandırılmadı.");
+    if(adminToken)await loadDashboard();
+  }).catch(error=>{clearSession();showLogin(error.message);});
 })();

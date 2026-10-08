@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Admin | Bebeğimiz İçin Aile Tahminleri</title>
   <link rel="stylesheet" href="./style.css">
-  <link rel="stylesheet" href="./admin.css?v=repair1">
+  <link rel="stylesheet" href="./admin.css?v=cloudflare1">
 </head>
 <body>
   <div class="page admin-page">
@@ -20,29 +20,16 @@
       <section id="admin-login" class="admin-login">
         <p class="eyebrow">YÖNETİCİ GİRİŞİ</p>
         <h1>Admin paneli</h1>
-        <p class="admin-copy">Yalnızca Naime veya Serhan’ın Google e-posta adresine gönderilen tek kullanımlık kodla giriş yapılır. Ayrı bir admin şifresi gerekmez.</p>
-
-        <form id="request-code-form" class="admin-form">
-          <label for="admin-email">
-            <span>Hangi hesaba kod gönderelim?</span>
-            <select id="admin-email" required>
-              <option value="naimegunduz75@gmail.com">Naime - naimegunduz75@gmail.com</option>
-              <option value="serhan.narli@gmail.com">Serhan - serhan.narli@gmail.com</option>
-            </select>
+        <p class="admin-copy">Aile cevaplarını ve özel hatıraları görmek için yönetici şifresiyle giriş yap.</p>
+        <form id="admin-password-form" class="admin-form">
+          <label for="admin-password">
+            <span>Yönetici şifresi</span>
+            <input id="admin-password" type="password" minlength="8" maxlength="256" autocomplete="current-password" required>
           </label>
-          <button class="primary" id="send-code-btn" type="submit">Giriş kodunu gönder</button>
-        </form>
-
-        <form id="verify-code-form" class="admin-form" hidden>
-          <label for="admin-code">
-            <span>E-postana gelen 6 haneli kod</span>
-            <input id="admin-code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required>
-          </label>
-          <button class="primary" id="verify-code-btn" type="submit">Kodu doğrula ve giriş yap</button>
-          <button class="secondary" id="change-email-btn" type="button">Başka hesap seç</button>
+          <button class="primary" id="admin-login-btn" type="submit">Giriş yap</button>
         </form>
         <p id="login-status" class="admin-status" role="status" aria-live="polite"></p>
-        <p class="admin-diagnostic"><a id="service-test-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Google bağlantısını ayrı sekmede test et</a></p>
+        <p class="admin-diagnostic"><a id="service-test-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Bağlantıyı kontrol et</a></p>
       </section>
 
       <section id="dashboard" class="dashboard" hidden>
@@ -52,7 +39,6 @@
             <h2>Aile cevapları</h2>
           </div>
           <div class="admin-actions">
-            <a id="sheet-link" class="secondary admin-link" href="#" target="_blank" rel="noopener">Google Sheet'i aç</a>
             <button id="refresh-btn" class="secondary" type="button">Yenile</button>
             <button id="logout-btn" class="secondary" type="button">Çıkış yap</button>
           </div>
@@ -108,9 +94,8 @@
     </main>
   </div>
 
-  <iframe id="api-frame" name="api-frame" hidden></iframe>
-  <script src="./api.js?v=repair1"></script>
-  <script src="./config.js?v=repair1"></script>
-  <script src="./admin.js?v=repair1"></script>
+  <script src="./config.js?v=cloudflare1"></script>
+  <script src="./api.js?v=cloudflare1"></script>
+  <script src="./admin.js?v=cloudflare1"></script>
 </body>
 </html>
