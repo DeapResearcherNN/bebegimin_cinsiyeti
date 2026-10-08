@@ -1,0 +1,21 @@
+name: Read-only live submission diagnostics
+on:
+  push:
+    branches: [maintenance-readonly-20261008]
+    paths: [cloudflare/diagnostics/read-only-check.mjs, .github/workflows/read-only-diagnostics.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Read service health, receipt status, settings and aggregate metrics
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node cloudflare/diagnostics/read-only-check.mjs
