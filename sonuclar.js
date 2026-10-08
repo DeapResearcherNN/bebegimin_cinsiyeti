@@ -49,7 +49,7 @@
       ? "Veriler şu anda güncellenemiyor"
       : "Canlı sonuçlara bağlanılıyor…";
     $("#load-notice-message").textContent = loadError ||
-      "Google tahmin kayıtları yükleniyor. Admin girişi veya şifre gerekmiyor.";
+      "Aile tahminleri yükleniyor. Admin girişi veya şifre gerekmiyor.";
   }
 
   function mainDataset() {
@@ -410,6 +410,7 @@
   }
 
   async function fetchPublicResults() {
+    if (window.BABY_APP_CONFIG?.provider === "cloudflare") return window.BabyApi.publicResults();
     // Prefer the configured read-only mirror; do not open a login-bound
     // Apps Script request on every refresh when the mirror already works.
     let mirrorError;

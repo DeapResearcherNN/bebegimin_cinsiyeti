@@ -580,7 +580,7 @@
     }
 
     if (!apiUrl) {
-      submitStatus.textContent = "Kayıt sistemi henüz Google Drive'a bağlanmadı. Şu an form gönderilemez.";
+      submitStatus.textContent = "Kayıt sistemi henüz sunucuya bağlanmadı. Şu an form gönderilemez.";
       return;
     }
 
@@ -601,7 +601,7 @@
 
       submitStatus.textContent = hasPhoto
         ? "Fotoğraf gönderim için hazırlanıyor…"
-        : hasMedia ? "Video / ses dosyan hazırlanıyor…" : "Tahminin Google'a gönderiliyor…";
+        : hasMedia ? "Video / ses dosyan hazırlanıyor…" : "Tahminin gönderiliyor…";
 
       const preparedPhoto = await optimizePhoto(selectedFiles.photo);
       const [photo,media] = await Promise.all([
