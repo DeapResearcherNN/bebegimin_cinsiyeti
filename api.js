@@ -93,3 +93,60 @@
 
   window.BabyApi = {checkHealth, submit, isTrustedOrigin};
 })();
+
+
+(() => {
+  "use strict";
+  if (window.BABY_APP_CONFIG?.provider !== "cloudflare") return;
+  const apiUrl=window.BABY_APP_CONFIG.apiUrl;
+  async function request(fields,{method="POST",body,timeout=60000,binary=false}={}) {
+    if(!apiUrl)throw new Error("Kayıt bağlantısı henüz hazır değil.");
+    const url=new URL(apiUrl),controller=new AbortController();
+    if(method==="GET")Object.entries(fields).forEach(([key,value])=>url.searchParams.set(key,String(value)));
+    const timer=setTimeout(()=>controller.abort(),timeout);
+    let response;
+    try {
+      response=await fetch(url,{method,credentials:"omit",signal:controller.signal,
+        ...(method==="POST"?{body:body||JSON.stringify(fields),headers:body?{}:{"Content-Type":"application/json"}}:{})});
+      if(binary&&response.ok)return response.blob();
+      const data=await response.json();
+      if(!response.ok||data.ok!==true){const error=new Error(data.error||"İşlem tamamlanamadı.");error.serverResponse=true;throw error;}
+      return data;
+    }finally{clearTimeout(timer);}
+  }
+  function attachment(data,mime,name){
+    const raw=atob(data.slice(data.indexOf(",")+1)),bytes=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+    return new File([bytes],name||"hatira",{type:mime||"application/octet-stream"});
+  }
+  async function submit(fields,requestId){
+    const body=new FormData();
+    for(const [key,value] of Object.entries({...fields,requestId})){
+      if(!/^(photo|media)(Data|Name|Mime)$/.test(key))body.append(key,String(value??""));
+    }
+    for(const kind of ["photo","media"]){
+      if(fields[kind+"Data"])body.append(kind,attachment(fields[kind+"Data"],fields[kind+"Mime"],fields[kind+"Name"]));
+    }
+    try{return await request({}, {body,timeout:fields.mediaData?120000:60000});}
+    catch(error){
+      if(error.serverResponse)throw error;
+      // The response may have been lost after the durable database write.
+      for(let i=0;i<3;i++){
+        try{const result=await request({action:"submissionReceipt",requestId},{method:"GET",timeout:10000});if(result.saved)return result;}catch(ignored){}
+        if(i<2)await new Promise(resolve=>setTimeout(resolve,1500));
+      }
+      throw new Error("Kayıt onayı alınamadı. Aynı cevaplarla tekrar denersen aynı kayıt anahtarı kullanılacak.");
+    }
+  }
+  async function openMedia(recordId,kind,adminToken){
+    const blob=await request({action:"adminMedia",recordId,kind,adminToken},{binary:true});
+    const url=URL.createObjectURL(blob),link=document.createElement("a");
+    link.href=url;link.download=kind+"-hatira";link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }
+  window.BabyApi={...window.BabyApi,
+    checkHealth:()=>request({action:"health"},{method:"GET",timeout:10000}),
+    post:fields=>request(fields),publicResults:()=>request({action:"publicResults"},{method:"GET",timeout:15000}),
+    submit,openMedia
+  };
+})();

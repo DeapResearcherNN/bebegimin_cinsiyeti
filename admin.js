@@ -28,12 +28,14 @@
 
   async function checkDeployment() {
     const data = await window.BabyApi.checkHealth();
+    if (data.provider === "cloudflare" && !data.adminReady) throw new Error("Yönetici e-posta hizmeti henüz hazır değil.");
     if (data.authVersion !== "email-otp-v2") {
       throw new Error("Yönetim servisi güncel değil. Apps Script dağıtımını yeni sürümle güncelle.");
     }
   }
 
   function postAction(fields) {
+    if (window.BABY_APP_CONFIG?.provider === "cloudflare") return window.BabyApi.post(fields);
     return new Promise((resolve, reject) => {
       if (!apiUrl) {
         reject(new Error("Google kayıt sistemi henüz bağlanmadı."));
@@ -105,7 +107,9 @@
     setText("#stat-boy", responses.filter(r => String(r.gender).includes("Erkek")).length);
     setText("#stat-pending", participants.filter(p => !p.answered).length);
 
-    document.querySelector("#sheet-link").href = data.sheetUrl || "#";
+    const sheetLink = document.querySelector("#sheet-link");
+    sheetLink.hidden = !data.sheetUrl;
+    if (data.sheetUrl) sheetLink.href = data.sheetUrl;
 
     participantList.textContent = "";
     participants.forEach(p => {
@@ -127,7 +131,18 @@
 
       [r.photoUrl, r.mediaUrl].forEach((url, index) => {
         const td = document.createElement("td");
-        if (url && /^https:\/\/drive\.google\.com\//.test(url)) {
+        if (window.BABY_APP_CONFIG?.provider === "cloudflare" && (index === 0 ? r.hasPhoto : r.hasMedia)) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = index === 0 ? "Fotoğrafı indir" : "Dosyayı indir";
+          button.addEventListener("click", async () => {
+            button.disabled = true;
+            try { await window.BabyApi.openMedia(r.recordId,index === 0 ? "photo" : "media",adminToken); }
+            catch (error) { settingsStatus.textContent = error.message; }
+            finally { button.disabled = false; }
+          });
+          td.appendChild(button);
+        } else if (url && /^https:\/\/drive\.google\.com\//.test(url)) {
           const link = document.createElement("a");
           link.href = url;
           link.target = "_blank";
