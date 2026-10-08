@@ -126,3 +126,21 @@ test("R2 failure does not create a false success or a half-saved database record
   assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,0);
  }finally{h.dispose();}
 });
+
+test("different people from the same browser/IP each have a durable independent receipt",async()=>{
+ const h=harness();try{
+  const first=await h.call({...answer,name:"TEST - First visitor"});
+  const secondId="req_12345678901234567891";
+  const second=await h.call({...answer,name:"TEST - Second visitor",requestId:secondId});
+  assert.equal(first.data.saved,true);assert.equal(second.data.saved,true);
+  assert.notEqual(first.data.recordId,second.data.recordId);
+  for(const [requestId,recordId] of [[answer.requestId,first.data.recordId],[secondId,second.data.recordId]]){
+   const read=await h.call({action:"submissionReceipt",requestId},{method:"GET"});
+   assert.equal(read.data.recordId,recordId);
+  }
+  const adminToken=await login(h),list=await h.call({action:"adminList",adminToken});
+  assert.equal(list.data.responses.length,2);
+  assert.equal((await h.call({...answer,name:"TEST - Second visitor",requestId:secondId})).data.recordId,second.data.recordId);
+  assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,2);
+ }finally{h.dispose();}
+});

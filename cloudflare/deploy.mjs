@@ -62,7 +62,8 @@ const login=await call({action:"adminLogin",password});
 const adminToken=login.adminToken;
 const checkId=randomUUID(),checkName="TEST - Deployment "+checkId;
 const checkRelation="Deployment (TEST)",requestId="req_"+checkId;
-let checkParticipant;
+let checkParticipant,secondParticipant;
+const secondName=checkName+" - Second visitor",secondRequestId=requestId+"_second";
 try{
   const list=await call({action:"adminList",adminToken});
   const publicResponse=await fetch(apiUrl+"?action=publicResults",{headers:{Origin:config.vars.SITE_ORIGIN}});
@@ -82,13 +83,22 @@ try{
     };
     const saved=await send(),repeated=await send();
     if(saved.recordId!==repeated.recordId)throw new Error("Live duplicate submission verification failed.");
+    secondParticipant=(await call({action:"adminAddParticipant",adminToken,name:secondName,relation:checkRelation})).participantId;
+    const second=await call({action:"submit",requestId:secondRequestId,name:secondName,relation:checkRelation,gender:"👦 Erkek",firstGuess:"Hiç tahminim olmadı",shortNote:"Second visitor verification"});
+    if(!second.saved||second.recordId===saved.recordId)throw new Error("Live same-browser independent submission failed.");
+    for(const [key,recordId] of [[requestId,saved.recordId],[secondRequestId,second.recordId]]){
+      const receiptResponse=await fetch(apiUrl+"?action=submissionReceipt&requestId="+encodeURIComponent(key),{cache:"no-store"});
+      const receipt=await receiptResponse.json();
+      if(!receiptResponse.ok||!receipt.saved||receipt.recordId!==recordId)throw new Error("Live durable receipt verification failed.");
+    }
     const records=await call({action:"adminList",adminToken});
+    if(records.responses.filter(row=>[saved.recordId,second.recordId].includes(row.recordId)).length!==2)throw new Error("Live two-person storage verification failed.");
     if(records.responses.filter(row=>row.recordId===saved.recordId).length!==1)throw new Error("Live durable storage verification failed.");
     const media=await fetch(apiUrl,{method:"POST",headers:{"Content-Type":"application/json",Origin:config.vars.SITE_ORIGIN},body:JSON.stringify({action:"adminMedia",adminToken,recordId:saved.recordId,kind:"photo"})});
     if(!media.ok||!photo.equals(Buffer.from(await media.arrayBuffer())))throw new Error("Live private file verification failed.");
     const denied=await fetch(apiUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"adminMedia",recordId:saved.recordId,kind:"photo"})});
     if(denied.status!==401)throw new Error("Live private file authorization verification failed.");
-    console.log("Live checks passed: password login, D1 submission, duplicate prevention, private R2 upload/download and anonymous results.");
+    console.log("Live checks passed: two different people from the same client, independent durable receipts, duplicate prevention, private R2 upload/download and anonymous results.");
   }else console.log("Live checks passed: password login and anonymous results; submission skipped because the form is closed.");
 }finally{
   // Only this run's randomly named verification record and object are removed.
@@ -97,6 +107,8 @@ try{
     if(row.photo_key)execFileSync("npx",["--yes","wrangler@4.102.0","r2","object","delete",bucketName+"/"+row.photo_key,"--remote","--force","--config","wrangler.generated.json"],{stdio:"inherit"});
   }
   await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM responses WHERE request_id=?",params:[requestId]});
+  await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM responses WHERE request_id=?",params:[secondRequestId]});
+  if(secondParticipant)await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM participants WHERE id=? AND name=?",params:[secondParticipant,secondName]});
   if(checkParticipant)await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM participants WHERE id=? AND name=?",params:[checkParticipant,checkName]});
   await call({action:"logoutAdmin",adminToken});
 }

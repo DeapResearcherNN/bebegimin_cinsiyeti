@@ -13,18 +13,19 @@ function harness(fetcher){
   fetch:fetcher};ctx.window=ctx;vm.createContext(ctx);vm.runInContext(source,ctx);
  return {api:ctx.BabyApi,close(){for(const t of timers)clearTimeout(t);}};
 }
-const success=data=>new Response(JSON.stringify({ok:true,...data}),{headers:{"Content-Type":"application/json"}});
+const success=data=>new Response(JSON.stringify({ok:true,recordId:"verified-record",submittedAt:"2026-10-08T14:00:00.000Z",...data}),{headers:{"Content-Type":"application/json"}});
 test("Cloudflare adapter makes a direct JSON health request without scripts or cookies",async()=>{
  let called=0;const h=harness(async(url,opts)=>{called++;assert.equal(url.searchParams.get("action"),"health");assert.equal(opts.credentials,"omit");return success({provider:"cloudflare"});});
  try{assert.equal((await h.api.checkHealth()).provider,"cloudflare");assert.equal(called,1);}finally{h.close();}
 });
 test("Cloudflare adapter sends real multipart binary files in one POST",async()=>{
  let called=0;const h=harness(async(url,opts)=>{
-  called++;assert.equal(opts.method,"POST");assert.equal(opts.body.get("requestId"),"req_12345678901234567890");
+  called++;if(opts.method==="GET"){assert.equal(url.searchParams.get("action"),"submissionReceipt");return success({saved:true});}
+  assert.equal(opts.method,"POST");assert.equal(opts.body.get("requestId"),"req_12345678901234567890");
   const photo=opts.body.get("photo");assert.equal(photo.type,"image/png");assert.equal(photo.size,3);
   assert.equal(opts.body.has("photoData"),false);return success({saved:true});
  });
- try{assert.equal((await h.api.submit({action:"submit",name:"TEST",photoData:"data:image/png;base64,AQID",photoMime:"image/png",photoName:"family.png"},"req_12345678901234567890")).saved,true);assert.equal(called,1);}finally{h.close();}
+ try{assert.equal((await h.api.submit({action:"submit",name:"TEST",photoData:"data:image/png;base64,AQID",photoMime:"image/png",photoName:"family.png"},"req_12345678901234567890")).saved,true);assert.equal(called,2);}finally{h.close();}
 });
 test("Cloudflare adapter reports a server rejection without automatic duplicate writes",async()=>{
  let called=0;const h=harness(async()=>{called++;return new Response(JSON.stringify({ok:false,error:"Form kapalı."}),{status:400,headers:{"Content-Type":"application/json"}});});
@@ -36,4 +37,12 @@ test("Cloudflare adapter checks a receipt after the POST response is lost",async
   reads++;assert.equal(url.searchParams.get("action"),"submissionReceipt");return success({saved:true});
  });
  try{assert.equal((await h.api.submit({action:"submit"},"req_12345678901234567890")).saved,true);assert.equal(posts,1);assert.equal(reads,1);}finally{h.close();}
+});
+
+test("a POST acknowledgement alone cannot show success without a durable receipt",async()=>{
+ let reads=0;const h=harness(async(url,opts)=>{
+  if(opts.method==="POST")return success({saved:true});
+  reads++;assert.equal(opts.cache,"no-store");return success({saved:false});
+ });
+ try{await assert.rejects(h.api.submit({action:"submit"},"req_12345678901234567890"),/Kayıt onayı alınamadı/);assert.equal(reads,3);}finally{h.close();}
 });

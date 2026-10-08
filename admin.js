@@ -46,10 +46,30 @@
       tr.append(time);$("#response-body").append(tr);
     }
   }
+  let dashboardLoading=false;
   async function loadDashboard(){
-    const data=await post({action:"adminList",adminToken});render(data);
-    $("#admin-login").hidden=true;$("#dashboard").hidden=false;$("#login-status").textContent="";
+    if(dashboardLoading||!adminToken)return;
+    dashboardLoading=true;
+    const requestedToken=adminToken;
+    try{
+      const data=await post({action:"adminList",adminToken:requestedToken});
+      if(adminToken!==requestedToken)return;
+      render(data);
+      $("#admin-login").hidden=true;$("#dashboard").hidden=false;$("#login-status").textContent="";
+      $("#refresh-status").textContent="Son kontrol: "+new Intl.DateTimeFormat("tr-TR",{timeStyle:"short"}).format(new Date())+" · Yeni cevaplar otomatik güncellenir.";
+    }finally{dashboardLoading=false;}
   }
+  async function refreshDashboard(){
+    if(!adminToken||document.hidden||$("#dashboard").hidden)return;
+    try{await loadDashboard();}catch(error){
+      $("#refresh-status").textContent="Güncelleme yapılamadı: "+error.message+" Tekrar denenecek.";
+      if(/oturum|giriş/i.test(error.message)){clearSession();showLogin(error.message);}
+    }
+  }
+  setInterval(refreshDashboard,15000);
+  window.addEventListener("focus",refreshDashboard);
+  document.addEventListener("visibilitychange",refreshDashboard);
+  window.addEventListener("storage",event=>{if(event.key==="baby_results_changed_at")refreshDashboard();});
   $("#admin-password-form").addEventListener("submit",async event=>{
     event.preventDefault();const button=$("#admin-login-btn");if(button.disabled)return;
     button.disabled=true;$("#login-status").textContent="Giriş yapılıyor…";
