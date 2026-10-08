@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f5c0d0">
   <title>👶 Bebeğimiz İçin Aile Tahminleri</title>
   <meta name="description" content="Bebeğimiz için aile tahminleri ve küçük hatıralar.">
-  <link rel="stylesheet" href="./style.css?v=familytheme2">
+  <link rel="stylesheet" href="./style.css?v=familytheme3">
   <link rel="stylesheet" href="./bebekler.css?v=crawl2">
   <script src="./bebekler.js?v=crawl2" defer></script>
 </head>
@@ -143,13 +143,11 @@
               <span class="number">6</span>
               <div class="question-body">
                 <span class="label">Bebeğimize kısa bir video veya sesli mesaj bırakmak ister misin?</span>
-                <p class="helper strong-helper">Video ya da ses dosyası yükle veya kameranı açıp kısa bir video kaydet.</p>
+                <p class="helper strong-helper">Cihazındaki bir video ya da ses dosyasını yükleyebilirsin.</p>
                 <div class="upload-options">
                   <label for="media-upload" class="upload-action">📁 Video / ses yükle</label>
-                  <button type="button" class="upload-action upload-action-camera" id="open-video-camera">🎬 Video kaydet</button>
                 </div>
                 <input class="visually-hidden" id="media-upload" name="media" type="file" accept="audio/*,video/*">
-                <input id="native-video-input" name="nativeVideo" type="file" accept="video/*" capture="user" hidden>
                 <div class="chosen-preview" id="media-result" hidden>
                   <video id="media-preview" class="media-preview" controls playsinline preload="metadata" hidden></video>
                   <audio id="audio-preview" controls preload="metadata" hidden></audio>
@@ -158,11 +156,11 @@
                     <button type="button" class="remove-file" id="remove-media">Video / sesi kaldır</button>
                   </div>
                 </div>
-                <small class="tech-note">İsteğe bağlı · En fazla 20 MB · Kameradan kayıt en fazla 30 saniye.</small>
+                <small class="tech-note">İsteğe bağlı · En fazla 20 MB.</small>
               </div>
             </div>
 
-            <section class="camera-studio" id="camera-studio" hidden aria-label="Kamera ile kayıt">
+            <section class="camera-studio" id="camera-studio" hidden aria-label="Fotoğraf çekme">
               <div class="camera-studio-head">
                 <div>
                   <span class="section-kicker">📸 KAMERA</span>
@@ -172,12 +170,9 @@
               </div>
               <div class="camera-view">
                 <video id="camera-live" autoplay muted playsinline aria-label="Canlı kamera görüntüsü"></video>
-                <span class="record-indicator" id="record-indicator" hidden>● KAYITTA <span id="record-clock">00:00</span></span>
               </div>
               <div class="camera-actions">
                 <button type="button" class="camera-primary" id="capture-photo-btn" hidden>📸 Fotoğrafı çek</button>
-                <button type="button" class="camera-primary" id="start-video-btn" hidden>🔴 Kaydı başlat</button>
-                <button type="button" class="camera-primary recording-button" id="stop-video-btn" hidden>■ Kaydı bitir</button>
                 <button type="button" class="camera-secondary" id="switch-camera-btn">↻ Kamerayı çevir</button>
                 <button type="button" class="camera-secondary" id="native-camera-option">📱 Telefon kamerasını kullan</button>
               </div>
@@ -238,6 +233,6 @@
   <iframe id="api-frame" name="api-frame" hidden></iframe>
   <script src="./config.js?v=cloudflare1"></script>
   <script src="./api.js?v=cloudflare1"></script>
-  <script src="./app.js?v=cloudflare1"></script>
+  <script src="./app.js?v=photo-only1"></script>
 </body>
 </html>

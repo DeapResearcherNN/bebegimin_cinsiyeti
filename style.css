@@ -120,7 +120,7 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
 .primary[disabled]{opacity:.55;cursor:not-allowed;transform:none!important}
 
 
-/* Şarta bağlı ilk tahmin ve fotoğraf/video kayıt arayüzü */
+/* Şarta bağlı ilk tahmin ve fotoğraf çekme ve dosya yükleme arayüzü */
 [hidden]{display:none!important}
 .first-guess-question{border-color:rgba(124,85,92,.36)!important;background:linear-gradient(105deg,#fff9fa,#f5f9fe)!important}
 .first-guess-question .choice-list{margin-top:12px}
@@ -172,12 +172,6 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
   display:grid;place-items:center
 }
 .camera-view video{width:100%;max-height:425px;object-fit:contain;display:block;aspect-ratio:16/10}
-.record-indicator{
-  position:absolute;top:12px;left:12px;z-index:2;
-  padding:8px 12px;border-radius:999px;
-  color:#fff;background:rgba(165,24,40,.93);font-size:11px;font-weight:900;
-  box-shadow:0 3px 12px rgba(25,0,0,.2)
-}
 .camera-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:14px}
 .camera-primary,.camera-secondary{
   min-height:45px;border-radius:999px;border:1px solid #d8c9cf;
@@ -186,8 +180,6 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
 .camera-primary{background:#80565e;color:#fff;border-color:#80565e}
 .camera-primary:hover{background:#65454f}
 .camera-primary[disabled]{opacity:.6;cursor:wait}
-.recording-button{background:#bd4155;border-color:#bd4155}
-.recording-button:hover{background:#933047}
 .camera-secondary{background:rgba(255,255,255,.95);color:#79515e}
 .camera-secondary:hover{background:#fff4f7}
 .camera-message{font-size:11px;line-height:1.6;color:#795763;margin:12px 0 0;min-height:14px}

@@ -4,7 +4,6 @@
   const apiUrl = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.apiUrl) || "";
   const MAX_PHOTO = 8 * 1024 * 1024;
   const MAX_MEDIA = 20 * 1024 * 1024;
-  const MAX_RECORD_SECONDS = 30;
 
   const screens = [...document.querySelectorAll(".screen")];
   const form = document.querySelector("#family-form");
@@ -20,12 +19,8 @@
   const cameraMessage = document.querySelector("#camera-message");
   const cameraTitle = document.querySelector("#camera-title");
   const captureButton = document.querySelector("#capture-photo-btn");
-  const startRecordButton = document.querySelector("#start-video-btn");
-  const stopRecordButton = document.querySelector("#stop-video-btn");
   const switchCameraButton = document.querySelector("#switch-camera-btn");
   const nativeCameraButton = document.querySelector("#native-camera-option");
-  const recordIndicator = document.querySelector("#record-indicator");
-  const recordClock = document.querySelector("#record-clock");
 
   const inputs = {
     photo: {
@@ -37,7 +32,6 @@
     },
     media: {
       upload: document.querySelector("#media-upload"),
-      native: document.querySelector("#native-video-input"),
       output: document.querySelector("#media-result"),
       fileName: document.querySelector("#media-file-name"),
       video: document.querySelector("#media-preview"),
@@ -52,9 +46,6 @@
   let cameraMode = "";
   let cameraFacing = "environment";
   let cameraToken = 0;
-  let activeRecording = null;
-  let clockTimer = null;
-  let recordLimitTimer = null;
   let cameraReady = false;
   let lastSubmission = null;
 
@@ -114,7 +105,7 @@
   function resetSelected(kind) {
     selectedFiles[kind] = null;
     inputs[kind].upload.value = "";
-    inputs[kind].native.value = "";
+    if (inputs[kind].native) inputs[kind].native.value = "";
     inputs[kind].output.hidden = true;
     inputs[kind].fileName.textContent = "";
     releaseUrl(kind);
@@ -153,7 +144,7 @@
 
     // Only the most recently selected capture/upload is sent.
     if (source !== "upload") inputs[kind].upload.value = "";
-    if (source !== "native") inputs[kind].native.value = "";
+    if (source !== "native" && inputs[kind].native) inputs[kind].native.value = "";
 
     selectedFiles[kind] = file;
     submitStatus.textContent = "";
@@ -188,25 +179,12 @@
     cameraMessage.textContent = text;
   }
 
-  function clearRecordingTimers() {
-    if (clockTimer !== null) clearInterval(clockTimer);
-    if (recordLimitTimer !== null) clearTimeout(recordLimitTimer);
-    clockTimer = null;
-    recordLimitTimer = null;
-  }
-
   function stopTracks(stream) {
     if (stream) stream.getTracks().forEach(track => track.stop());
   }
 
   function closeCamera() {
     cameraToken++;
-    clearRecordingTimers();
-    if (activeRecording && activeRecording.recorder.state !== "inactive") {
-      activeRecording.keep = false;
-      try { activeRecording.recorder.stop(); } catch (err) { /* stopped already */ }
-    }
-    activeRecording = null;
     stopTracks(cameraStream);
     cameraStream = null;
     cameraReady = false;
@@ -214,38 +192,23 @@
     cameraVideo.pause();
     cameraVideo.srcObject = null;
     cameraPanel.hidden = true;
-    recordIndicator.hidden = true;
     captureButton.hidden = true;
-    startRecordButton.hidden = true;
-    stopRecordButton.hidden = true;
     switchCameraButton.disabled = false;
   }
 
-  async function obtainCamera(mode, facing) {
-    const video = {facingMode:{ideal:facing},width:{ideal:mode === "video" ? 960 : 1280},height:{ideal:mode === "video" ? 540 : 720}};
-    if (mode === "photo") return {stream:await navigator.mediaDevices.getUserMedia({video,audio:false}), hasAudio:false};
-    try {
-      return {stream:await navigator.mediaDevices.getUserMedia({
-        video,
-        audio:{echoCancellation:true,noiseSuppression:true}
-      }),hasAudio:true};
-    } catch (error) {
-      // A microphone permission error should not prevent a silent video.
-      return {stream:await navigator.mediaDevices.getUserMedia({video,audio:false}),hasAudio:false};
-    }
+  async function obtainCamera(facing) {
+    const video = {facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}};
+    return navigator.mediaDevices.getUserMedia({video,audio:false});
   }
 
-  async function openCamera(mode, facing) {
+  async function openCamera(facing) {
     closeCamera();
-    cameraMode = mode;
-    cameraFacing = facing || (mode === "photo" ? "environment" : "user");
+    cameraMode = "photo";
+    cameraFacing = facing || "environment";
     cameraPanel.hidden = false;
-    cameraTitle.textContent = mode === "photo" ? "Kamerayla fotoğraf çek" : "Kısa bir video kaydet";
-    captureButton.hidden = mode !== "photo";
-    startRecordButton.hidden = mode !== "video";
-    stopRecordButton.hidden = true;
+    cameraTitle.textContent = "Kamerayla fotoğraf çek";
+    captureButton.hidden = false;
     captureButton.disabled = true;
-    startRecordButton.disabled = true;
     nativeCameraButton.textContent = "📱 Telefonun kamerasını kullan";
     cameraStatus("Kamera izni isteniyor… Kameraya izin vermen gerekiyor.");
 
@@ -258,12 +221,12 @@
     }
 
     try {
-      const result = await obtainCamera(mode,cameraFacing);
+      const stream = await obtainCamera(cameraFacing);
       if (ticket !== cameraToken) {
-        stopTracks(result.stream);
+        stopTracks(stream);
         return;
       }
-      cameraStream = result.stream;
+      cameraStream = stream;
       cameraVideo.srcObject = cameraStream;
       cameraVideo.muted = true;
       cameraVideo.playsInline = true;
@@ -271,14 +234,7 @@
       if (ticket !== cameraToken) return;
       cameraReady = true;
       captureButton.disabled = false;
-      startRecordButton.disabled = false;
-      if (mode === "video" && !result.hasAudio) {
-        cameraStatus("Kamera açık. Mikrofon erişimi olmadığından video sessiz kaydedilecek.");
-      } else {
-        cameraStatus(mode === "photo"
-          ? "Kamera hazır. Fotoğrafı çek düğmesine bas."
-          : "Kamera hazır. Video kaydın en fazla 30 saniye sürebilir.");
-      }
+      cameraStatus("Kamera hazır. Fotoğrafı çek düğmesine bas.");
     } catch (error) {
       if (ticket !== cameraToken) return;
       cameraStatus("Kamera açılamadı. Kamera iznini kontrol et veya 'Telefonun kamerasını kullan' seçeneğini dene.");
@@ -320,118 +276,6 @@
       closeCamera();
       inputs.photo.output.scrollIntoView({behavior:"smooth",block:"nearest"});
     },"image/jpeg",0.84);
-  }
-
-  function mimePreference() {
-    if (typeof MediaRecorder === "undefined") return "";
-    const types = ["video/mp4","video/webm;codecs=vp8,opus","video/webm;codecs=vp9,opus","video/webm"];
-    if (typeof MediaRecorder.isTypeSupported !== "function") return "";
-    return types.find(type => MediaRecorder.isTypeSupported(type)) || "";
-  }
-
-  function beginVideoRecording() {
-    if (cameraMode !== "video" || !cameraReady || !cameraStream) return;
-    if (typeof MediaRecorder === "undefined") {
-      cameraStatus("Bu tarayıcıda doğrudan video kaydı yok. Telefonun kamerasını kullan seçeneğini seç.");
-      return;
-    }
-
-    let recorder;
-    try {
-      const mimeType = mimePreference();
-      const settings = {videoBitsPerSecond:700000,audioBitsPerSecond:64000};
-      if (mimeType) settings.mimeType = mimeType;
-      recorder = new MediaRecorder(cameraStream,settings);
-    } catch (error) {
-      cameraStatus("Bu cihazda video kaydı başlatılamadı. Telefonun kamerasını kullan seçeneğini dene.");
-      return;
-    }
-
-    const session = {
-      recorder,keep:true,chunks:[],bytes:0,token:cameraToken,started:Date.now()
-    };
-    activeRecording = session;
-
-    recorder.ondataavailable = event => {
-      if (!event.data || !event.data.size) return;
-      session.chunks.push(event.data);
-      session.bytes += event.data.size;
-      if (session.bytes > MAX_MEDIA && recorder.state === "recording") {
-        session.keep = false;
-        cameraStatus("Video 20 MB sınırını aştı. Daha kısa bir video kaydet.");
-        recorder.stop();
-      }
-    };
-
-    recorder.onerror = () => {
-      session.keep = false;
-      clearRecordingTimers();
-      cameraStatus("Video kaydı sırasında bir hata oluştu. Tekrar dene.");
-      startRecordButton.hidden = false;
-      stopRecordButton.hidden = true;
-      recordIndicator.hidden = true;
-      switchCameraButton.disabled = false;
-    };
-
-    recorder.onstop = () => {
-      clearRecordingTimers();
-      if (activeRecording === session) activeRecording = null;
-      recordIndicator.hidden = true;
-      startRecordButton.hidden = false;
-      stopRecordButton.hidden = true;
-      switchCameraButton.disabled = false;
-
-      if (!session.keep || session.token !== cameraToken) return;
-
-      const mediaType = String(recorder.mimeType || session.chunks[0]?.type || "video/webm");
-      const extension = mediaType.includes("mp4") ? "mp4" : "webm";
-      const fileType = extension === "mp4" ? "video/mp4" : "video/webm";
-      const blob = new Blob(session.chunks,{type:fileType});
-      if (!blob.size) {
-        cameraStatus("Video boş kaydedildi. Tekrar dene.");
-        return;
-      }
-      if (blob.size > MAX_MEDIA) {
-        cameraStatus("Video 20 MB sınırını aşıyor. Daha kısa bir video kaydet.");
-        return;
-      }
-      const file = new File([blob],"bebegimize_video_" + Date.now() + "." + extension,{type:fileType});
-      chooseFile("media",file,"camera");
-      closeCamera();
-      inputs.media.output.scrollIntoView({behavior:"smooth",block:"nearest"});
-    };
-
-    try {
-      recorder.start(1000);
-    } catch (error) {
-      activeRecording = null;
-      cameraStatus("Kayıt başlatılamadı. Tekrar dene.");
-      return;
-    }
-
-    startRecordButton.hidden = true;
-    stopRecordButton.hidden = false;
-    recordIndicator.hidden = false;
-    switchCameraButton.disabled = true;
-    recordClock.textContent = "00:00";
-    cameraStatus("Kayıt yapılıyor. İşin bitince 'Kaydı bitir' düğmesine bas.");
-
-    clockTimer = setInterval(() => {
-      const elapsed = Math.min(MAX_RECORD_SECONDS,Math.floor((Date.now()-session.started)/1000));
-      recordClock.textContent = "00:" + String(elapsed).padStart(2,"0");
-    },250);
-    recordLimitTimer = setTimeout(() => {
-      if (recorder.state === "recording") recorder.stop();
-    },MAX_RECORD_SECONDS*1000);
-  }
-
-  function stopVideoRecording() {
-    if (!activeRecording || activeRecording.recorder.state !== "recording") return;
-    stopRecordButton.disabled = true;
-    cameraStatus("Video hazırlanıyor, lütfen bekle…");
-    activeRecording.recorder.stop();
-    // Reset happens after MediaRecorder's onstop callback.
-    Promise.resolve().then(() => { stopRecordButton.disabled = false; });
   }
 
   function readFileAsDataUrl(file,maxBytes,label) {
@@ -520,31 +364,18 @@
   inputs.media.upload.addEventListener("change",()=>{
     chooseFile("media",inputs.media.upload.files[0],"upload");
   });
-  inputs.media.native.addEventListener("change",()=>{
-    const file = inputs.media.native.files[0];
-    if (file) {
-      chooseFile("media",file,"native");
-      closeCamera();
-    }
-  });
-
   document.querySelector("#remove-photo").addEventListener("click",()=>resetSelected("photo"));
   document.querySelector("#remove-media").addEventListener("click",()=>resetSelected("media"));
-  document.querySelector("#open-photo-camera").addEventListener("click",()=>openCamera("photo"));
-  document.querySelector("#open-video-camera").addEventListener("click",()=>openCamera("video"));
+  document.querySelector("#open-photo-camera").addEventListener("click",()=>openCamera());
   document.querySelector("#close-camera").addEventListener("click",closeCamera);
   captureButton.addEventListener("click",capturePhoto);
-  startRecordButton.addEventListener("click",beginVideoRecording);
-  stopRecordButton.addEventListener("click",stopVideoRecording);
 
   switchCameraButton.addEventListener("click",()=>{
-    if (activeRecording && activeRecording.recorder.state === "recording") return;
     if (!cameraMode) return;
-    openCamera(cameraMode,cameraFacing === "environment" ? "user" : "environment");
+    openCamera(cameraFacing === "environment" ? "user" : "environment");
   });
   nativeCameraButton.addEventListener("click",()=>{
     if (cameraMode === "photo") inputs.photo.native.click();
-    if (cameraMode === "video") inputs.media.native.click();
   });
 
   document.addEventListener("click",event=>{
@@ -573,11 +404,6 @@
     submitStatus.textContent = "";
 
     if (!form.reportValidity()) return;
-
-    if (activeRecording && activeRecording.recorder.state === "recording") {
-      submitStatus.textContent = "Önce video kaydını bitirip kaydedilmesini bekle.";
-      return;
-    }
 
     if (!apiUrl) {
       submitStatus.textContent = "Kayıt sistemi henüz sunucuya bağlanmadı. Şu an form gönderilemez.";
