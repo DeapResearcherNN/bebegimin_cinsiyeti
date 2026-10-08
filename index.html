@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f5c0d0">
   <title>👶 Bebeğimiz İçin Aile Tahminleri</title>
   <meta name="description" content="Bebeğimiz için aile tahminleri ve küçük hatıralar.">
-  <link rel="stylesheet" href="./style.css?v=familytheme3">
+  <link rel="stylesheet" href="./style.css?v=familytheme4">
   <link rel="stylesheet" href="./bebekler.css?v=crawl2">
   <script src="./bebekler.js?v=crawl2" defer></script>
 </head>
@@ -115,7 +115,7 @@
             <div class="section-heading"><div class="section-kicker">
               ♡ Bebeğimize bir hatıra
               <span class="optional-badge">Zorunlu değil</span>
-            </div><h3>Bir gün dönüp bakacağımız…</h3><p class="section-description">Bir fotoğraf, sesin ya da birkaç güzel söz. Hangisi içinden gelirse.</p></div>
+            </div><h3>Bir gün dönüp bakacağımız…</h3><p class="section-description">Bir fotoğraf ya da birkaç güzel söz. Hangisi içinden gelirse.</p></div>
 
             <div class="question optional">
               <span class="number">5</span>
@@ -136,27 +136,6 @@
                   </div>
                 </div>
                 <small class="tech-note">İsteğe bağlı · En fazla 8 MB · Fotoğraf özel arşive kaydedilir.</small>
-              </div>
-            </div>
-
-            <div class="question optional">
-              <span class="number">6</span>
-              <div class="question-body">
-                <span class="label">Bebeğimize kısa bir video veya sesli mesaj bırakmak ister misin?</span>
-                <p class="helper strong-helper">Cihazındaki bir video ya da ses dosyasını yükleyebilirsin.</p>
-                <div class="upload-options">
-                  <label for="media-upload" class="upload-action">📁 Video / ses yükle</label>
-                </div>
-                <input class="visually-hidden" id="media-upload" name="media" type="file" accept="audio/*,video/*">
-                <div class="chosen-preview" id="media-result" hidden>
-                  <video id="media-preview" class="media-preview" controls playsinline preload="metadata" hidden></video>
-                  <audio id="audio-preview" controls preload="metadata" hidden></audio>
-                  <div class="chosen-file-info">
-                    <strong id="media-file-name"></strong>
-                    <button type="button" class="remove-file" id="remove-media">Video / sesi kaldır</button>
-                  </div>
-                </div>
-                <small class="tech-note">İsteğe bağlı · En fazla 20 MB.</small>
               </div>
             </div>
 
@@ -184,7 +163,7 @@
               <div class="question-body">
                 <span class="label">Kısa bir yazı bırakmak ister misin?</span>
                 <p class="helper strong-helper">
-                  Fotoğraf, video veya sesli mesaj bırakmak istemiyorsan buraya birkaç cümle yazabilirsin.
+                  Bebeğimize buradan birkaç cümle yazabilirsin.
                   Bugünkü hissini, tahminini ya da bebeğimize söylemek istediğin küçük bir şeyi bırakabilirsin. ❤️
                 </p>
                 <textarea class="note-input" name="shortNote" rows="6" maxlength="800" placeholder="Kısa yazını buraya yaz..."></textarea>
@@ -233,6 +212,6 @@
   <iframe id="api-frame" name="api-frame" hidden></iframe>
   <script src="./config.js?v=cloudflare1"></script>
   <script src="./api.js?v=cloudflare1"></script>
-  <script src="./app.js?v=photo-only1"></script>
+  <script src="./app.js?v=photo-note1"></script>
 </body>
 </html>

@@ -3,7 +3,6 @@
 
   const apiUrl = (window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.apiUrl) || "";
   const MAX_PHOTO = 8 * 1024 * 1024;
-  const MAX_MEDIA = 20 * 1024 * 1024;
 
   const screens = [...document.querySelectorAll(".screen")];
   const form = document.querySelector("#family-form");
@@ -29,18 +28,11 @@
       output: document.querySelector("#photo-result"),
       fileName: document.querySelector("#photo-file-name"),
       preview: document.querySelector("#photo-preview")
-    },
-    media: {
-      upload: document.querySelector("#media-upload"),
-      output: document.querySelector("#media-result"),
-      fileName: document.querySelector("#media-file-name"),
-      video: document.querySelector("#media-preview"),
-      audio: document.querySelector("#audio-preview")
     }
   };
 
-  const selectedFiles = {photo: null, media: null};
-  const previewUrls = {photo: "", media: ""};
+  const selectedFiles = {photo: null};
+  const previewUrls = {photo: ""};
 
   let cameraStream = null;
   let cameraMode = "";
@@ -109,39 +101,23 @@
     inputs[kind].output.hidden = true;
     inputs[kind].fileName.textContent = "";
     releaseUrl(kind);
-    if (kind === "photo") {
-      inputs.photo.preview.removeAttribute("src");
-    } else {
-      inputs.media.video.pause();
-      inputs.media.video.removeAttribute("src");
-      inputs.media.video.load();
-      inputs.media.audio.pause();
-      inputs.media.audio.removeAttribute("src");
-      inputs.media.audio.load();
-      inputs.media.video.hidden = true;
-      inputs.media.audio.hidden = true;
-    }
+    inputs.photo.preview.removeAttribute("src");
   }
 
   function chooseFile(kind, file, source) {
     if (!file) return;
-    const limit = kind === "photo" ? MAX_PHOTO : MAX_MEDIA;
-    const title = kind === "photo" ? "Fotoğraf" : "Video / ses";
+    const limit = MAX_PHOTO;
+    const title = "Fotoğraf";
     const type = String(file.type || "").toLowerCase();
     if (file.size > limit) {
       submitStatus.textContent = title + " dosyası çok büyük. En fazla " + Math.floor(limit / 1048576) + " MB yükleyebilirsin.";
       if (source === "upload" || source === "native") inputs[kind][source].value = "";
       return;
     }
-    if (kind === "photo" && type && !type.startsWith("image/")) {
+    if (type && !type.startsWith("image/")) {
       submitStatus.textContent = "Lütfen yalnızca fotoğraf dosyası seç.";
       return;
     }
-    if (kind === "media" && type && !type.startsWith("video/") && !type.startsWith("audio/")) {
-      submitStatus.textContent = "Lütfen video veya ses dosyası seç.";
-      return;
-    }
-
     // Only the most recently selected capture/upload is sent.
     if (source !== "upload") inputs[kind].upload.value = "";
     if (source !== "native" && inputs[kind].native) inputs[kind].native.value = "";
@@ -154,25 +130,7 @@
     inputs[kind].fileName.textContent = file.name + " · " + (file.size / 1048576).toFixed(1) + " MB";
     inputs[kind].output.hidden = false;
 
-    if (kind === "photo") {
-      inputs.photo.preview.src = previewUrls.photo;
-    } else {
-      const audioOnly = type.startsWith("audio/") ||
-        (!type && /\.(mp3|m4a|wav|ogg|aac)$/i.test(file.name));
-      const video = inputs.media.video;
-      const audio = inputs.media.audio;
-      video.pause();
-      audio.pause();
-      video.hidden = audioOnly;
-      audio.hidden = !audioOnly;
-      if (audioOnly) {
-        audio.src = previewUrls.media;
-        video.removeAttribute("src");
-      } else {
-        video.src = previewUrls.media;
-        audio.removeAttribute("src");
-      }
-    }
+    inputs.photo.preview.src = previewUrls.photo;
   }
 
   function cameraStatus(text) {
@@ -361,11 +319,7 @@
       closeCamera();
     }
   });
-  inputs.media.upload.addEventListener("change",()=>{
-    chooseFile("media",inputs.media.upload.files[0],"upload");
-  });
   document.querySelector("#remove-photo").addEventListener("click",()=>resetSelected("photo"));
-  document.querySelector("#remove-media").addEventListener("click",()=>resetSelected("media"));
   document.querySelector("#open-photo-camera").addEventListener("click",()=>openCamera());
   document.querySelector("#close-camera").addEventListener("click",closeCamera);
   captureButton.addEventListener("click",capturePhoto);
@@ -387,7 +341,6 @@
       form.reset();
       updateFirstGuess();
       resetSelected("photo");
-      resetSelected("media");
       submitStatus.textContent = "";
       show("intro");
     }
@@ -423,17 +376,13 @@
       await window.BabyApi.checkHealth();
       const data = new FormData(form);
       const hasPhoto = !!selectedFiles.photo;
-      const hasMedia = !!selectedFiles.media;
 
       submitStatus.textContent = hasPhoto
         ? "Fotoğraf gönderim için hazırlanıyor…"
-        : hasMedia ? "Video / ses dosyan hazırlanıyor…" : "Tahminin gönderiliyor…";
+        : "Tahminin gönderiliyor…";
 
       const preparedPhoto = await optimizePhoto(selectedFiles.photo);
-      const [photo,media] = await Promise.all([
-        readFileAsDataUrl(preparedPhoto,MAX_PHOTO,"Fotoğraf"),
-        readFileAsDataUrl(selectedFiles.media,MAX_MEDIA,"Video / ses")
-      ]);
+      const photo = await readFileAsDataUrl(preparedPhoto,MAX_PHOTO,"Fotoğraf");
 
       const submittedFields = {
         action:"submit",
@@ -444,10 +393,7 @@
         shortNote:data.get("shortNote") || "",
         photoName:photo.name,
         photoMime:photo.mime,
-        photoData:photo.data,
-        mediaName:media.name,
-        mediaMime:media.mime,
-        mediaData:media.data
+        photoData:photo.data
       };
 
       // Preserve the same request ID if the user retries unchanged answers
@@ -458,10 +404,7 @@
         submittedFields.shortNote,
         selectedFiles.photo && selectedFiles.photo.name,
         selectedFiles.photo && selectedFiles.photo.size,
-        selectedFiles.photo && selectedFiles.photo.lastModified,
-        selectedFiles.media && selectedFiles.media.name,
-        selectedFiles.media && selectedFiles.media.size,
-        selectedFiles.media && selectedFiles.media.lastModified
+        selectedFiles.photo && selectedFiles.photo.lastModified
       ];
       const fingerprintText = JSON.stringify(fingerprint);
       const fingerprintKey = window.crypto?.subtle
@@ -488,9 +431,7 @@
         try { sessionStorage.setItem("baby_pending_request", JSON.stringify(lastSubmission)); } catch(ignored) {}
       }
 
-      submitStatus.textContent = hasMedia
-        ? "Dosyalar güvenle aktarılıyor. Büyük videolar biraz daha uzun sürebilir."
-        : "Tahminin kaydediliyor; lütfen sayfayı kapatma.";
+      submitStatus.textContent = "Tahminin kaydediliyor; lütfen sayfayı kapatma.";
 
       progressTimers.push(setTimeout(()=>{
         submitStatus.textContent = "Kayıt onayı bekleniyor…";
@@ -505,7 +446,7 @@
       },34000));
 
       const result = await sendWithReceipt(
-        submittedFields, lastSubmission.requestId, hasMedia
+        submittedFields, lastSubmission.requestId
       );
 
       // This signal is anonymous; no family name, guess or attachment is

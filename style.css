@@ -146,8 +146,6 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
   padding:12px;border-radius:15px;border:1px solid #e9dedc;background:#fffaf9
 }
 .photo-preview{display:block;object-fit:cover;max-width:175px;max-height:150px;border-radius:11px}
-.media-preview{display:block;max-width:min(100%,360px);max-height:240px;border-radius:11px;background:#312d34}
-#audio-preview{max-width:100%;width:min(100%,350px)}
 .chosen-file-info{display:flex;flex:1 1 200px;justify-content:space-between;align-items:center;gap:11px;flex-wrap:wrap;min-width:0}
 .chosen-file-info strong{font-size:11px;font-weight:800;overflow-wrap:anywhere}
 .remove-file{
@@ -292,7 +290,7 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
 .family-page .choice input:focus-visible+span{outline:3px solid #987a9c;outline-offset:3px}
 .family-page .helper{font-size:11px;line-height:1.7}
 .family-page .first-guess-question{background:linear-gradient(105deg,#fff9fa,#f5f9fe);border-color:#e5ccd9}
-.family-page .optional-section{grid-template-columns:repeat(2,minmax(0,1fr));background:linear-gradient(135deg,#fffafc,#f8fbfe)}
+.family-page .optional-section{grid-template-columns:1fr;background:linear-gradient(135deg,#fffafc,#f8fbfe)}
 .family-page .optional-section>.section-heading,.family-page .text-note-option,.family-page .camera-studio{grid-column:1/-1}
 .family-page .optional-badge{background:#f5e9f0;color:#a17b8d;font-size:10px;padding:5px 10px;white-space:nowrap}
 .family-page .question.optional{border-style:solid;background:#ffffffb3}
