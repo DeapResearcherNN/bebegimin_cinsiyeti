@@ -106,7 +106,7 @@
     const timer=setTimeout(()=>controller.abort(),timeout);
     let response;
     try {
-      response=await fetch(url,{method,credentials:"omit",signal:controller.signal,
+      response=await fetch(url,{method,credentials:"omit",cache:"no-store",signal:controller.signal,
         ...(method==="POST"?{body:body||JSON.stringify(fields),headers:body?{}:{"Content-Type":"application/json"}}:{})});
       if(binary&&response.ok)return response.blob();
       const data=await response.json();
@@ -127,17 +127,25 @@
     for(const kind of ["photo","media"]){
       if(fields[kind+"Data"])body.append(kind,attachment(fields[kind+"Data"],fields[kind+"Mime"],fields[kind+"Name"]));
     }
-    try{return await request({}, {body,timeout:fields.mediaData?120000:60000});}
-    catch(error){
+    let acknowledged;
+    try {
+      acknowledged=await request({}, {body,timeout:fields.mediaData?120000:60000});
+    } catch(error) {
       if(error.serverResponse)throw error;
-      // The response may have been lost after the durable database write.
-      for(let i=0;i<3;i++){
-        try{const result=await request({action:"submissionReceipt",requestId},{method:"GET",timeout:10000});if(result.saved)return result;}catch(ignored){}
-        if(i<2)await new Promise(resolve=>setTimeout(resolve,1500));
-      }
-      throw new Error("Kayıt onayı alınamadı. Aynı cevaplarla tekrar denersen aynı kayıt anahtarı kullanılacak.");
+      // A lost reply may still have written the record. Keep the same ID.
     }
+    // Only show success after a separate read confirms the durable record.
+    for(let i=0;i<3;i++){
+      try {
+        const result=await request({action:"submissionReceipt",requestId},{method:"GET",timeout:10000});
+        if(result.saved===true&&result.recordId&&result.submittedAt&&
+          (!acknowledged?.recordId||result.recordId===acknowledged.recordId))return result;
+      }catch(ignored){}
+      if(i<2)await new Promise(resolve=>setTimeout(resolve,1500));
+    }
+    throw new Error("Kayıt onayı alınamadı. Aynı cevaplarla tekrar denersen aynı kayıt anahtarı kullanılacak.");
   }
+
   async function openMedia(recordId,kind,adminToken){
     const blob=await request({action:"adminMedia",recordId,kind,adminToken},{binary:true});
     const url=URL.createObjectURL(blob),link=document.createElement("a");

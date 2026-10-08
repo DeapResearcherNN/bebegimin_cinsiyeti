@@ -449,6 +449,11 @@
         submittedFields, lastSubmission.requestId
       );
 
+      if (result.saved !== true || !result.recordId || !result.submittedAt) {
+        throw new Error("Kayıt doğrulanamadı. Aynı cevaplarla tekrar deneyebilirsin.");
+      }
+      document.querySelector("#success-receipt").textContent = "Kayıt no: " + result.recordId;
+
       // This signal is anonymous; no family name, guess or attachment is
       // stored in browser storage.
       try {
