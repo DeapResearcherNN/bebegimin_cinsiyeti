@@ -291,12 +291,12 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
 .family-page .choice input:focus-visible+span{outline:3px solid #987a9c;outline-offset:3px}
 .family-page .helper{font-size:11px;line-height:1.7}
 .family-page .first-guess-question{background:linear-gradient(105deg,#fff9fa,#f5f9fe);border-color:#e5ccd9}
-.family-page .optional-section{grid-template-columns:1fr;background:linear-gradient(135deg,#fffafc,#f8fbfe)}
-.family-page .optional-section>.section-heading,.family-page .text-note-option,.family-page .camera-studio{grid-column:1/-1}
+.family-page .keepsake-section{grid-template-columns:1fr;background:linear-gradient(135deg,#fffafc,#f8fbfe)}
+.family-page .keepsake-section>.section-heading,.family-page .text-note-option,.family-page .camera-studio{grid-column:1/-1}
 .family-page .optional-badge{background:#f5e9f0;color:#a17b8d;font-size:10px;padding:5px 10px;white-space:nowrap}
-.family-page .question.optional{border-style:solid;background:#ffffffb3}
-.family-page .optional-section>.question.optional:not(.text-note-option){grid-template-columns:1fr}
-.family-page .optional-section>.question.optional:not(.text-note-option)>.number{background:#edf3fa;color:#809cbb}
+.family-page .keepsake-section>.question.required{border-style:solid;background:#ffffffb3}
+.family-page .keepsake-section>.question.required:not(.text-note-option){grid-template-columns:1fr}
+.family-page .keepsake-section>.question.required:not(.text-note-option)>.number{background:#edf3fa;color:#809cbb}
 .family-page .upload-options{grid-template-columns:1fr;margin-top:16px}
 .family-page .upload-action{border-color:#e8dce4;min-height:46px;font-size:11px;border-radius:12px}
 .family-page .upload-action-camera{background:linear-gradient(110deg,#fcecf3,#edf5fc);border-color:#e8d7e3;color:#8b6580}
@@ -339,9 +339,9 @@ footer{padding:14px 3px 0;color:var(--muted);text-align:center;font-size:10px}
   .family-page .keepsake-strip{gap:11px 20px;padding:17px 18px;font-size:10px}.family-page .keepsake-strip span:last-child{width:100%;justify-content:center}
   .family-page .form-head{grid-template-columns:1fr;gap:17px;margin-bottom:24px}.family-page .form-head>div{padding-right:0}.family-page .form-head h2{font-size:36px}.family-page .form-head:after{font-size:27px;top:3px;right:8px}.family-page .form-head .back{margin:0}
   .family-page .form-section{padding:20px 15px;border-radius:20px;gap:12px}
-  .family-page .identity-section,.family-page .optional-section{grid-template-columns:1fr}
+  .family-page .identity-section,.family-page .keepsake-section{grid-template-columns:1fr}
   .family-page .section-heading h3{font-size:26px}.family-page .section-description{font-size:11px}.family-page .section-heading{padding-right:16px}.family-page .section-kicker{font-size:9px;letter-spacing:.09em}
-  .family-page .form-section:before{right:16px;top:15px;font-size:25px}.family-page .optional-section:before{display:none}
+  .family-page .form-section:before{right:16px;top:15px;font-size:25px}.family-page .keepsake-section:before{display:none}
   .family-page .question{padding:16px 12px;grid-template-columns:26px minmax(0,1fr);gap:8px}.family-page .number{width:25px;height:25px;font-size:9px}
   .family-page .label,.family-page .question legend{font-size:12px}.family-page .question input[type=text],.family-page .note-input{font-size:16px;padding:12px}
   .family-page .choice-grid.two{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.family-page .choice-grid.two .choice span{min-height:65px;font-size:21px;padding:10px 8px}
