@@ -47,7 +47,7 @@ for(let attempt=0;attempt<30;attempt++){
     const response=await fetch(apiUrl+"?action=health",{signal:AbortSignal.timeout(10000)});
     lastStatus=String(response.status);
     const health=await response.json();
-    if(response.ok&&health.provider==="cloudflare"&&health.ok===true&&health.adminReady===true){ready=true;break;}
+    if(response.ok&&health.provider==="cloudflare"&&health.formVersion==="required-photo-note-v1"&&health.ok===true&&health.adminReady===true){ready=true;break;}
   }catch(ignored){}
   await new Promise(resolve=>setTimeout(resolve,2000));
 }
@@ -66,6 +66,19 @@ let checkParticipant,secondParticipant;
 const secondName=checkName+" - Second visitor",secondRequestId=requestId+"_second";
 try{
   const list=await call({action:"adminList",adminToken});
+  // Remove only the owned failed smoke response from the preceding rollout.
+  const failedChecks=list.responses.filter(row=>/^TEST - Deployment [a-f0-9-]{36}$/.test(row.name)&&row.relation===checkRelation&&row.shortNote==="Required fields verification"&&row.submittedAt>="2026-10-08T14:44:00.000Z"&&row.submittedAt<"2026-10-08T14:44:04.000Z");
+  for(const row of failedChecks){
+    const owned=await api("/d1/database/"+database.uuid+"/query","POST",{sql:"SELECT r.id,r.participant_id,r.photo_key FROM responses r JOIN participants p ON p.id=r.participant_id WHERE r.id=? AND p.name=? AND p.relation=? AND r.short_note=? AND r.submitted_at=?",params:[row.recordId,row.name,checkRelation,"Required fields verification",row.submittedAt]});
+    for(const record of owned[0]?.results||[]){
+      if(record.photo_key){
+        if(record.photo_key!==record.id+"/photo")throw new Error("Unexpected failed check object key.");
+        execFileSync("npx",["--yes","wrangler@4.102.0","r2","object","delete",bucketName+"/"+record.photo_key,"--remote","--force","--config","wrangler.generated.json"],{stdio:"inherit"});
+      }
+      await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM responses WHERE id=?",params:[record.id]});
+      await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM participants WHERE id=? AND name=? AND NOT EXISTS(SELECT 1 FROM responses WHERE participant_id=?)",params:[record.participant_id,row.name,record.participant_id]});
+    }
+  }
   const publicResponse=await fetch(apiUrl+"?action=publicResults",{headers:{Origin:config.vars.SITE_ORIGIN}});
   const publicData=await publicResponse.json();
   if(!publicResponse.ok||publicData.ok!==true||publicData.responses.some(row=>row.shortNote||row.photoUrl||row.mediaUrl))throw new Error("Live anonymous results verification failed.");
@@ -112,12 +125,11 @@ try{
   }else console.log("Live checks passed: password login and anonymous results; submission skipped because the form is closed.");
 }finally{
   // Only this run's randomly named verification record and object are removed.
-  const rows=await api("/d1/database/"+database.uuid+"/query","POST",{sql:"SELECT id,photo_key FROM responses WHERE request_id IN (?,?)",params:[requestId,secondRequestId]});
+  const rows=await api("/d1/database/"+database.uuid+"/query","POST",{sql:"SELECT id,photo_key FROM responses WHERE request_id IN (?,?,?,?)",params:[requestId,secondRequestId,requestId+"_missing_photo",requestId+"_missing_shortNote"]});
   for(const row of rows[0]?.results||[]){
     if(row.photo_key)execFileSync("npx",["--yes","wrangler@4.102.0","r2","object","delete",bucketName+"/"+row.photo_key,"--remote","--force","--config","wrangler.generated.json"],{stdio:"inherit"});
   }
-  await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM responses WHERE request_id=?",params:[requestId]});
-  await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM responses WHERE request_id=?",params:[secondRequestId]});
+  for(const key of [requestId,secondRequestId,requestId+"_missing_photo",requestId+"_missing_shortNote"])await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM responses WHERE request_id=?",params:[key]});
   if(secondParticipant)await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM participants WHERE id=? AND name=?",params:[secondParticipant,secondName]});
   if(checkParticipant)await api("/d1/database/"+database.uuid+"/query","POST",{sql:"DELETE FROM participants WHERE id=? AND name=?",params:[checkParticipant,checkName]});
   await call({action:"logoutAdmin",adminToken});

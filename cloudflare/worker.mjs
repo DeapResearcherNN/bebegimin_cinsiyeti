@@ -177,7 +177,7 @@ export default {
       if(url.pathname!=="/api")fail("Bulunamadı.",404);
       if(request.method==="GET"){
         const act=url.searchParams.get("action")||"health";
-        if(act==="health")return json({ok:true,service:"baby-family-api",provider:"cloudflare",authVersion:"shared-password-v1",publicVersion:"anonymous-v1",adminReady:!!env.ADMIN_PASSWORD_HASH});
+        if(act==="health")return json({ok:true,service:"baby-family-api",provider:"cloudflare",authVersion:"shared-password-v1",publicVersion:"anonymous-v1",formVersion:"required-photo-note-v1",adminReady:!!env.ADMIN_PASSWORD_HASH});
         if(act==="publicResults")return json(await publicResults(env));
         if(act==="submissionReceipt")return json(await receipt(env,clean(url.searchParams.get("requestId"))));
         fail("Bilinmeyen işlem.",404);
