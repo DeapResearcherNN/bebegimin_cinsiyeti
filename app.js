@@ -499,230 +499,8 @@
     return "req_" + Date.now() + "_" + Math.random().toString(36).slice(2) + "_" + Math.random().toString(36).slice(2);
   }
 
-  function verifySavedReceipt(requestId) {
-    return new Promise((resolve,reject) => {
-      const callback = "__baby_receipt_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-      const script = document.createElement("script");
-      const url = new URL(apiUrl);
-      url.searchParams.set("action","submissionReceipt");
-      url.searchParams.set("requestId",requestId);
-      url.searchParams.set("callback",callback);
-      url.searchParams.set("_",String(Date.now()));
-      let finished = false;
-
-      const timer = setTimeout(() => {
-        cleanup();
-        reject(new Error("Kayıt kontrol servisi yanıt vermedi."));
-      },7500);
-      function cleanup() {
-        if(finished) return;
-        finished = true;
-        clearTimeout(timer);
-        delete window[callback];
-        script.remove();
-      }
-      window[callback] = result => {
-        cleanup();
-        if(result && result.ok && typeof result.saved === "boolean") resolve(result);
-        else reject(new Error((result && result.error) || "Kayıt kontrol servisi henüz hazır değil."));
-      };
-      script.onerror = () => {
-        cleanup();
-        reject(new Error("Kayıt kontrol bağlantısı açılamadı."));
-      };
-      script.src = url.toString();
-      document.head.append(script);
-    });
-  }
-
-  function verifyPublicMirrorReceipt(requestId) {
-    return new Promise((resolve,reject) => {
-      const sheetId = window.BABY_APP_CONFIG && window.BABY_APP_CONFIG.publicSheetId;
-      if (!sheetId) return reject(new Error("Anonim kontrol tablosu yapılandırılmadı."));
-
-      const callback = "__baby_sheet_receipt_" + Date.now() + "_" +
-        Math.random().toString(36).slice(2);
-      const script = document.createElement("script");
-      const url = new URL("https://docs.google.com/spreadsheets/d/" + encodeURIComponent(sheetId) + "/gviz/tq");
-      url.searchParams.set("sheet","Veri");
-      url.searchParams.set("tq","select K where K is not null");
-      url.searchParams.set("tqx","out:json;responseHandler:" + callback);
-      url.searchParams.set("_",String(Date.now()));
-      let settled = false;
-      const timer=setTimeout(()=>{
-        cleanup();
-        reject(new Error("Anonim kayıt kontrolü yanıt vermedi."));
-      },6500);
-
-      function cleanup(){
-        if(settled) return;
-        settled=true;
-        clearTimeout(timer);
-        delete window[callback];
-        script.remove();
-      }
-      window[callback]=data=>{
-        cleanup();
-        if(data && data.status==="ok" && data.table && Array.isArray(data.table.rows)){
-          const saved = data.table.rows.some(row =>
-            row.c && row.c.some(cell => cell && String(cell.v)===requestId)
-          );
-          resolve({ok:true,saved,verifiedByPublicMirror:true});
-        } else {
-          reject(new Error("Anonim kayıt kontrolü okunamadı."));
-        }
-      };
-      script.onerror=()=>{
-        cleanup();
-        reject(new Error("Anonim kayıt kontrolü açılamadı."));
-      };
-      script.src=url.toString();
-      document.head.append(script);
-    });
-  }
-
-  async function verifyReceiptByAnySource(requestId) {
-    // A random receipt ID is safe to expose in the anonymized feed.
-    // Neither mechanism transmits names or uploaded file content via GET.
-    const check=source => source(requestId).then(result => {
-      if(result && result.ok && result.saved) return result;
-      throw new Error("Kaydın oluşması bekleniyor.");
-    });
-    return Promise.any([
-      check(verifyPublicMirrorReceipt),
-      check(verifySavedReceipt)
-    ]);
-  }
-
-  function postWithoutCors(fields,requestId){
-    // Omit Google account cookies to avoid third-party login redirects.
-    // The response is intentionally opaque; receipt polling verifies success.
-    const body=new URLSearchParams({...fields,requestId});
-    return fetch(apiUrl,{
-      method:"POST",
-      mode:"no-cors",
-      credentials:"omit",
-      redirect:"follow",
-      headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
-      body:body.toString()
-    });
-  }
-
-  function sendWithReceipt(fields,requestId,hasMedia){
-    return new Promise((resolve,reject)=>{
-      let finished=false;
-      let polling=false;
-      let iframeStarted=false;
-      const maxWait=fields.mediaData ? 55000 : fields.photoData ? 36000 : 24000;
-
-      function cleanup() {
-        clearTimeout(timeout);
-        clearInterval(checker);
-        clearTimeout(backupTimer);
-      }
-      function success(result) {
-        if(finished) return;
-        finished=true;
-        cleanup();
-        resolve(result);
-      }
-      function failure(error) {
-        if(finished) return;
-        finished=true;
-        cleanup();
-        reject(error);
-      }
-      function launchIframeBackup() {
-        if(finished || iframeStarted) return;
-        iframeStarted=true;
-        postToBackend(fields,requestId).then(success).catch(error=>{
-          if(error.serverResponse) {
-            failure(error);
-          }
-        });
-      }
-
-      async function checkReceipt() {
-        if(finished || polling) return;
-        polling=true;
-        try {
-          const found=await verifyReceiptByAnySource(requestId);
-          success({
-            ok:true,
-            submittedAt:found.submittedAt || new Date().toISOString(),
-            verifiedByReceipt:true
-          });
-        } catch(error) {
-          // Neither receipt system has confirmed the submission yet.
-          // An opaque POST response is NEVER treated as proof of success.
-        } finally {
-          polling=false;
-        }
-      }
-
-      const timeout=setTimeout(()=>failure(new Error(
-        "Google kayıt sisteminden "+Math.round(maxWait/1000)+
-        " saniyede onay alınamadı. Cevabın kaydedilmiş olabilir. " +
-        "Tekrar göndermeden önce sonuç sayfasını kontrol et."
-      )),maxWait);
-      const checker=setInterval(checkReceipt,3200);
-      const backupTimer=setTimeout(launchIframeBackup,5500);
-
-      // The primary path sends a simple anonymous POST. The old iframe
-      // receiver runs as a retry with the SAME request ID if needed.
-      // Server-side idempotency prevents duplicate submissions.
-      Promise.resolve()
-        .then(()=>postWithoutCors(fields,requestId))
-        .then(()=>checkReceipt())
-        .catch(()=>launchIframeBackup());
-    });
-  }
-
-  function postToBackend(fields, requestId) {
-    return new Promise((resolve,reject)=>{
-      if (!apiUrl) return reject(new Error("Google Drive kayıt sistemi henüz etkinleştirilmedi."));
-      const postForm = document.createElement("form");
-      postForm.method = "POST";
-      postForm.action = apiUrl;
-      postForm.target = "api-frame";
-      postForm.hidden = true;
-
-      Object.entries({...fields,requestId}).forEach(([key,value])=>{
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = value == null ? "" : String(value);
-        postForm.append(input);
-      });
-
-      let resolved = false;
-      const timer = setTimeout(()=>{
-        cleanup();
-        reject(new Error("Kayıt sunucusu zamanında yanıt vermedi. Bağlantıyı kontrol edip tekrar dene."));
-      },70000);
-
-      function onMessage(event) {
-        const data = event.data;
-        if (!data || data.source !== "baby-form-api" || data.requestId !== requestId) return;
-        cleanup();
-        if (data.ok) resolve(data);
-        else {
-          const error = new Error(data.error || "Kayıt başarısız.");
-          error.serverResponse = true;
-          reject(error);
-        }
-      }
-      function cleanup() {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timer);
-        window.removeEventListener("message",onMessage);
-        postForm.remove();
-      }
-      window.addEventListener("message",onMessage);
-      document.body.append(postForm);
-      postForm.submit();
-    });
+  async function sendWithReceipt(fields, requestId) {
+    return window.BabyApi.submit(fields, requestId);
   }
 
   form.querySelectorAll('input[name="gender"]').forEach(radio=>{
@@ -791,6 +569,7 @@
 
   form.addEventListener("submit",async event=>{
     event.preventDefault();
+    if (submitButton.disabled) return;
     submitStatus.textContent = "";
 
     if (!form.reportValidity()) return;
@@ -814,6 +593,8 @@
 
     try {
       closeCamera();
+      submitStatus.textContent = "Kayıt bağlantısı kontrol ediliyor…";
+      await window.BabyApi.checkHealth();
       const data = new FormData(form);
       const hasPhoto = !!selectedFiles.photo;
       const hasMedia = !!selectedFiles.media;
@@ -851,19 +632,34 @@
         submittedFields.shortNote,
         selectedFiles.photo && selectedFiles.photo.name,
         selectedFiles.photo && selectedFiles.photo.size,
+        selectedFiles.photo && selectedFiles.photo.lastModified,
         selectedFiles.media && selectedFiles.media.name,
-        selectedFiles.media && selectedFiles.media.size
-      ].join("|");
+        selectedFiles.media && selectedFiles.media.size,
+        selectedFiles.media && selectedFiles.media.lastModified
+      ];
+      const fingerprintText = JSON.stringify(fingerprint);
+      const fingerprintKey = window.crypto?.subtle
+        ? Array.from(new Uint8Array(await window.crypto.subtle.digest(
+            "SHA-256", new TextEncoder().encode(fingerprintText)
+          )), byte => byte.toString(16).padStart(2,"0")).join("")
+        : fingerprintText;
 
+      if (!lastSubmission && window.crypto?.subtle) {
+        try { lastSubmission = JSON.parse(sessionStorage.getItem("baby_pending_request")); } catch(ignored) {}
+      }
       const fresh = !lastSubmission ||
-        lastSubmission.fingerprint !== fingerprint ||
+        lastSubmission.fingerprint !== fingerprintKey ||
         Date.now() - lastSubmission.started > 1800000;
       if(fresh) {
         lastSubmission = {
-          fingerprint,
+          fingerprint: fingerprintKey,
           requestId:newRequestId(),
           started:Date.now()
         };
+      }
+
+      if (window.crypto?.subtle) {
+        try { sessionStorage.setItem("baby_pending_request", JSON.stringify(lastSubmission)); } catch(ignored) {}
       }
 
       submitStatus.textContent = hasMedia
@@ -871,7 +667,7 @@
         : "Tahminin kaydediliyor; lütfen sayfayı kapatma.";
 
       progressTimers.push(setTimeout(()=>{
-        submitStatus.textContent = "Google Drive ile bağlantı kuruldu, kayıt onayı bekleniyor…";
+        submitStatus.textContent = "Kayıt onayı bekleniyor…";
       },8500));
       progressTimers.push(setTimeout(()=>{
         submitStatus.textContent =
@@ -893,6 +689,7 @@
       } catch(ignored) {}
 
       lastSubmission = null;
+      try { sessionStorage.removeItem("baby_pending_request"); } catch(ignored) {}
       document.querySelector("#success-name").textContent = data.get("name") || "";
       document.querySelector("#success-gender").textContent = data.get("gender") || "";
       document.querySelector("#success-date").textContent =

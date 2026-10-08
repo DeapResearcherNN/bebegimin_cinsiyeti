@@ -26,76 +26,11 @@
   let adminToken = sessionStorage.getItem(SESSION_KEY) || "";
   let requestedEmail = "";
 
-  function checkDeploymentOnce() {
-    return new Promise((resolve, reject) => {
-      if (!apiUrl) {
-        reject(new Error("Google kayıt sisteminin bağlantı adresi bulunamadı."));
-        return;
-      }
-
-      const callback = "__baby_health_" + Date.now() + "_" + Math.random().toString(36).slice(2);
-      const script = document.createElement("script");
-      const url = new URL(apiUrl);
-      url.searchParams.set("action", "health");
-      url.searchParams.set("callback", callback);
-      url.searchParams.set("_", Date.now());
-
-      const timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error("Google Apps Script'e ulaşılamadı. Dağıtımın erişimi 'Herkes' olmalı; adresi ve dağıtımı kontrol et."));
-      }, 12000);
-
-      function cleanup() {
-        clearTimeout(timeout);
-        delete window[callback];
-        script.remove();
-      }
-
-      window[callback] = data => {
-        cleanup();
-
-        if (!data || !data.ok) {
-          reject(new Error((data && data.error) || "Google Apps Script yanıtı geçersiz."));
-        } else if (data.authVersion !== "email-otp-v2") {
-          reject(new Error(
-            "Google Apps Script'in yayınlanan sürümü eski. " +
-            "GitHub'daki güncel backend/Code.gs kodunu Apps Script'e koy. " +
-            "Ardından Dağıt → Dağıtımları yönet → Düzenle → Yeni sürüm → Dağıt seç."
-          ));
-        } else {
-          resolve(true);
-        }
-      };
-
-      script.onerror = () => {
-        cleanup();
-        reject(new Error("Google Apps Script bağlantısı açılamadı. Dağıtım ayarlarını kontrol et."));
-      };
-
-      script.src = url.toString();
-      document.head.appendChild(script);
-    });
-  }
-
-
-  // Google's Content Service can occasionally fail while redirecting
-  // its response; retry transient script-load errors before reporting a failure.
   async function checkDeployment() {
-    let lastError;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (attempt > 0) {
-        await new Promise(resolve => setTimeout(resolve, attempt === 1 ? 1400 : 2600));
-      }
-      try {
-        return await checkDeploymentOnce();
-      } catch (error) {
-        lastError = error;
-        if (/sürümü eski|bağlantı adresi bulunamadı/i.test(error.message)) {
-          throw error;
-        }
-      }
+    const data = await window.BabyApi.checkHealth();
+    if (data.authVersion !== "email-otp-v2") {
+      throw new Error("Yönetim servisi güncel değil. Apps Script dağıtımını yeni sürümle güncelle.");
     }
-    throw lastError || new Error("Google Apps Script bağlantısı kurulamadı.");
   }
 
   function postAction(fields) {
@@ -126,6 +61,7 @@
       }, 40000);
 
       function onMessage(event) {
+        if (!window.BabyApi.isTrustedOrigin(event.origin)) return;
         const data = event.data;
         if (!data || data.source !== "baby-form-api" || data.requestId !== requestId) return;
         cleanup();
