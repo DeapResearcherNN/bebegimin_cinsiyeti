@@ -49,7 +49,7 @@
       ? "Veriler şu anda güncellenemiyor"
       : "Canlı sonuçlara bağlanılıyor…";
     $("#load-notice-message").textContent = loadError ||
-      "Google tahmin kayıtları yükleniyor. Admin girişi veya şifre gerekmiyor.";
+      "Aile tahminleri yükleniyor. Admin girişi veya şifre gerekmiyor.";
   }
 
   function mainDataset() {

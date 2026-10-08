@@ -1,5 +1,5 @@
 
-const ADMINS = ["naimegunduz75@gmail.com", "serhan.narli@gmail.com"];
+
 const FIRST = ["İlk andan beri kız","İlk andan beri erkek","Önce kız düşündüm, sonra fikrim değişti","Önce erkek düşündüm, sonra fikrim değişti","Hiç tahminim olmadı"];
 const RECEIPT = /^req_[A-Za-z0-9_-]{18,100}$/;
 const clean = value => String(value ?? "").trim();
@@ -16,7 +16,7 @@ const run = (env,sql,...args) => env.DB.prepare(sql).bind(...args).run();
 const all = async (env,sql,...args) => (await env.DB.prepare(sql).bind(...args).all()).results;
 async function throttle(env,key,limit,seconds){
   const window=Math.floor(Date.now()/(seconds*1000));
-  const row=await first(env,"INSERT INTO throttle(key,window,count) VALUES(?,?,1) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN window=excluded.window THEN count+1 ELSE 1 END,window=excluded.window RETURNING count",key,window);
+  const row=await first(env,"INSERT INTO throttle(key,window,count,expires_at) VALUES(?,?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN window=excluded.window THEN count+1 ELSE 1 END,window=excluded.window,expires_at=excluded.expires_at RETURNING count",key,window,(window+1)*seconds*1000);
   if(row.count>limit)fail("Çok sık deneme yapıldı. Biraz sonra tekrar dene.",429);
 }
 async function settings(env){
@@ -96,46 +96,42 @@ async function publicResults(env){
   const people=await all(env,"SELECT p.name,p.relation,EXISTS(SELECT 1 FROM responses r WHERE r.participant_id=p.id) AS answered FROM participants p WHERE p.active=1 ORDER BY p.id");
   return {ok:true,service:"baby-family-api",publicVersion:"anonymous-v1",responses,participants:people.map((p,i)=>({name:"Katılımcı "+(i+1),relation:"Aile / arkadaş",answered:!!p.answered,isTest:isTest(p.name,p.relation)})),updatedAt:new Date().toISOString()};
 }
+
+export async function passwordHash(password,salt){
+  const bytes=new Uint8Array(salt.match(/.{2}/g).map(byte=>parseInt(byte,16)));
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:bytes,iterations:100000},key,256);
+  return Array.from(new Uint8Array(bits),v=>v.toString(16).padStart(2,"0")).join("");
+}
+async function adminLogin(env,p,ip){
+  if(!env.ADMIN_PASSWORD_HASH)fail("Yönetici şifresi henüz yapılandırılmadı.",503);
+  await throttle(env,"login:"+await hash(ip),5,900);
+  const password=String(p.password||"");
+  if(password.length<8||password.length>256)fail("Yönetici şifresi yanlış.",401);
+  const parts=env.ADMIN_PASSWORD_HASH.split("$");
+  if(parts.length!==4||parts[0]!=="pbkdf2-sha256"||parts[1]!=="100000"||!/^[a-f0-9]{32}$/.test(parts[2])||!/^[a-f0-9]{64}$/.test(parts[3]))fail("Yönetici şifresi yapılandırması geçersiz.",503);
+  const actual=await passwordHash(password,parts[2]);
+  let different=0;for(let i=0;i<actual.length;i++)different|=actual.charCodeAt(i)^parts[3].charCodeAt(i);
+  if(different)fail("Yönetici şifresi yanlış.",401);
+  const adminToken=token();
+  await run(env,"INSERT INTO sessions(token_hash,role,expires_at) VALUES(?,?,?)",await hash(adminToken),"admin",Date.now()+21600000);
+  return {ok:true,adminToken};
+}
 async function session(env,value){
   if(!/^[a-f0-9]{64}$/.test(clean(value)))fail("Yönetici girişi gerekli.",401);
-  const r=await first(env,"SELECT email FROM sessions WHERE token_hash=? AND expires_at>?",await hash(value),Date.now());
-  if(!r||!ADMINS.includes(r.email))fail("Oturumun süresi dolmuş. Yeniden giriş yap.",401);
-  return r.email;
-}
-async function requestCode(env,p){
-  const email=clean(p.adminEmail).toLowerCase();
-  if(!ADMINS.includes(email))fail("Bu hesap yönetici değil.",403);
-  if(!env.EMAIL||!env.EMAIL_FROM)fail("Yönetici e-posta hizmeti henüz bağlanmadı.",503);
-  await throttle(env,"otp:"+email,1,60);
-  await run(env,"DELETE FROM otp WHERE email=?",email);
-  const code=String(crypto.getRandomValues(new Uint32Array(1))[0]%1000000).padStart(6,"0"),challenge=id();
-  await run(env,"INSERT INTO otp(email,challenge,code_hash,expires_at,attempts) VALUES(?,?,?,?,0)",email,challenge,await hash(challenge+":"+code),Date.now()+600000);
-  try {
-    await env.EMAIL.send({from:env.EMAIL_FROM,to:email,subject:"Aile sitesi yönetici giriş kodu",text:"Giriş kodun: "+code+"\nKod 10 dakika geçerlidir. Bu işlemi başlatmadıysan kodu paylaşma."});
-  }catch(error){await run(env,"DELETE FROM otp WHERE email=? AND challenge=?",email,challenge);fail("Giriş e-postası gönderilemedi. E-posta hizmetini kontrol et.",503);}
-  return {ok:true,message:"Giriş kodu e-posta adresine gönderildi."};
-}
-async function verifyCode(env,p){
-  const email=clean(p.adminEmail).toLowerCase(),code=clean(p.adminCode);
-  if(!ADMINS.includes(email)||!/^\d{6}$/.test(code))fail("E-posta veya kod geçersiz.",401);
-  const r=await first(env,"UPDATE otp SET attempts=attempts+1 WHERE email=? AND expires_at>? AND attempts<5 RETURNING *",email,Date.now());
-  if(!r||r.code_hash!==await hash(r.challenge+":"+code))fail("Kod yanlış veya süresi doldu.",401);
-  const consumed=await first(env,"DELETE FROM otp WHERE email=? AND challenge=? RETURNING email",email,r.challenge);
-  if(!consumed)fail("Bu kod zaten kullanıldı.",401);
-  const adminToken=token();
-  await run(env,"INSERT INTO sessions(token_hash,email,expires_at) VALUES(?,?,?)",await hash(adminToken),email,Date.now()+21600000);
-  return {ok:true,adminToken};
+  const r=await first(env,"SELECT role FROM sessions WHERE token_hash=? AND expires_at>?",await hash(value),Date.now());
+  if(!r||r.role!=="admin")fail("Oturumun süresi dolmuş. Yeniden giriş yap.",401);
+  return r.role;
 }
 async function adminList(env){
   const rows=await all(env,"SELECT r.*,p.name,p.relation FROM responses r JOIN participants p ON p.id=r.participant_id ORDER BY r.submitted_at DESC");
   const people=await all(env,"SELECT p.*,EXISTS(SELECT 1 FROM responses r WHERE r.participant_id=p.id) AS answered FROM participants p ORDER BY p.name");
   return {ok:true,responses:rows.map(r=>({recordId:r.id,name:r.name,relation:r.relation,gender:r.gender,firstGuess:r.first_guess,shortNote:r.short_note,hasPhoto:!!r.photo_key,hasMedia:!!r.media_key,submittedAt:r.submitted_at,locked:true})),participants:people.map(p=>({id:p.id,name:p.name,relation:p.relation,active:!!p.active,answered:!!p.answered})),settings:await settings(env)};
 }
-async function action(env,p,uploads){
+async function action(env,p,uploads,ip){
   switch(p.action){
     case "submit":return submit(env,p,uploads);
-    case "requestAdminCode":return requestCode(env,p);
-    case "verifyAdminCode":return verifyCode(env,p);
+    case "adminLogin":return adminLogin(env,p,ip);
   }
   await session(env,p.adminToken);
   if(p.action==="adminList")return adminList(env);
@@ -179,7 +175,7 @@ export default {
       if(url.pathname!=="/api")fail("Bulunamadı.",404);
       if(request.method==="GET"){
         const act=url.searchParams.get("action")||"health";
-        if(act==="health")return json({ok:true,service:"baby-family-api",provider:"cloudflare",authVersion:"email-otp-v2",publicVersion:"anonymous-v1",adminReady:!!env.EMAIL&&!!env.EMAIL_FROM});
+        if(act==="health")return json({ok:true,service:"baby-family-api",provider:"cloudflare",authVersion:"shared-password-v1",publicVersion:"anonymous-v1",adminReady:!!env.ADMIN_PASSWORD_HASH});
         if(act==="publicResults")return json(await publicResults(env));
         if(act==="submissionReceipt")return json(await receipt(env,clean(url.searchParams.get("requestId"))));
         fail("Bilinmeyen işlem.",404);
@@ -195,8 +191,8 @@ export default {
         const text=await request.text();if(text.length>8192)fail("İstek çok büyük.",413);p=JSON.parse(text);
       }else fail("Geçersiz içerik türü.",415);
       const ip=request.headers.get("CF-Connecting-IP")||"unknown";
-      if(["submit","requestAdminCode","verifyAdminCode"].includes(p.action))await throttle(env,"ip:"+await hash(ip),30,600);
-      const result=await action(env,p,uploads);
+      if(["submit","adminLogin"].includes(p.action))await throttle(env,"ip:"+await hash(ip),30,600);
+      const result=await action(env,p,uploads,ip);
       if(result instanceof Response){for(const [k,v] of Object.entries(cors))result.headers.set(k,v);return result;}
       return json(result);
     }catch(error){
@@ -209,8 +205,7 @@ export default {
     const now=Date.now();
     await env.DB.batch([
       env.DB.prepare("DELETE FROM sessions WHERE expires_at<?").bind(now),
-      env.DB.prepare("DELETE FROM otp WHERE expires_at<?").bind(now),
-      env.DB.prepare("DELETE FROM throttle WHERE window<?").bind(Math.floor(now/600000)-2)
+      env.DB.prepare("DELETE FROM throttle WHERE expires_at<?").bind(now)
     ]);
   }
 };

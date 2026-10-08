@@ -4,18 +4,20 @@ import assert from "node:assert/strict";
 import {DatabaseSync} from "node:sqlite";
 import {readFileSync} from "node:fs";
 import worker from "../worker.mjs";
+import {pbkdf2Sync} from "node:crypto";
 
 function harness(){
   const db=new DatabaseSync(":memory:");db.exec(readFileSync(new URL("../schema.sql",import.meta.url),"utf8"));
-  const objects=new Map(),sent=[];
+  const objects=new Map();
   const statement=(sql,args=[])=>({
     sql,args,bind(...values){return statement(sql,values);},
     async first(){return db.prepare(sql).get(...args)||null;},
     async all(){return {results:db.prepare(sql).all(...args)};},
     async run(){return db.prepare(sql).run(...args);}
   });
-  const env={SITE_ORIGIN:"https://deapresearchernn.github.io",EMAIL_FROM:"test@example.invalid",
-    EMAIL:{async send(message){sent.push(message);}},
+  const salt="00112233445566778899aabbccddeeff";
+  const digest=pbkdf2Sync("test-password",Buffer.from(salt,"hex"),100000,32,"sha256").toString("hex");
+  const env={SITE_ORIGIN:"https://deapresearchernn.github.io",ADMIN_PASSWORD_HASH:"pbkdf2-sha256$100000$"+salt+"$"+digest,
     DB:{prepare:statement,async batch(statements){
       db.exec("BEGIN");
       try{const results=statements.map(s=>db.prepare(s.sql).run(...s.args));db.exec("COMMIT");return results;}
@@ -34,13 +36,11 @@ function harness(){
     return {status:response.status,data:ct.includes("application/json")?await response.json():await response.arrayBuffer(),headers:response.headers};
   }
   const dispose=()=>db.close();
-  return {env,db,objects,sent,call,dispose};
+  return {env,db,objects,call,dispose};
 }
 const answer={action:"submit",name:"TEST - integration",relation:"Deneme (TEST)",gender:"👧 Kız",firstGuess:"İlk andan beri kız",shortNote:"Private message",requestId:"req_12345678901234567890"};
 async function login(h){
-  assert.equal((await h.call({action:"requestAdminCode",adminEmail:"serhan.narli@gmail.com"})).status,200);
-  const code=h.sent[0].text.match(/Giriş kodun: (\d{6})/)[1];
-  const result=await h.call({action:"verifyAdminCode",adminEmail:"serhan.narli@gmail.com",adminCode:code});
+  const result=await h.call({action:"adminLogin",password:"test-password"});
   assert.equal(result.status,200);return result.data.adminToken;
 }
 test("durable save and lost-response receipt are idempotent",async()=>{
@@ -74,14 +74,26 @@ test("name/relation duplicate, closed form and unlisted participant are rejected
   assert.equal((await h.call({...answer,name:"Other person",requestId:"req_12345678901234567893"})).status,400);
  }finally{h.dispose();}
 });
-test("email OTP grants only allowed admins a single-use expiring session",async()=>{
+
+test("shared password grants an expiring session without email or verification codes",async()=>{
  const h=harness();try{
-  assert.equal((await h.call({action:"requestAdminCode",adminEmail:"stranger@example.invalid"})).status,403);
+  assert.equal((await h.call({action:"adminLogin",password:"wrong-password"})).status,401);
   const adminToken=await login(h);
   assert.equal((await h.call({action:"adminList",adminToken})).status,200);
-  const code=h.sent[0].text.match(/Giriş kodun: (\d{6})/)[1];
-  assert.equal((await h.call({action:"verifyAdminCode",adminEmail:"serhan.narli@gmail.com",adminCode:code})).status,401);
+  assert.equal(h.db.prepare("SELECT token_hash FROM sessions").get().token_hash===adminToken,false);
   await h.call({action:"logoutAdmin",adminToken});
+  assert.equal((await h.call({action:"adminList",adminToken})).status,401);
+ }finally{h.dispose();}
+});
+test("password login rejects attempts above the rate limit",async()=>{
+ const h=harness();try{
+  for(let i=0;i<5;i++)assert.equal((await h.call({action:"adminLogin",password:"wrong-password"})).status,401);
+  assert.equal((await h.call({action:"adminLogin",password:"test-password"})).status,429);
+ }finally{h.dispose();}
+});
+test("expired sessions cannot read private answers",async()=>{
+ const h=harness();try{
+  const adminToken=await login(h);h.db.exec("UPDATE sessions SET expires_at=0");
   assert.equal((await h.call({action:"adminList",adminToken})).status,401);
  }finally{h.dispose();}
 });

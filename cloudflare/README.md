@@ -1,49 +1,49 @@
 
-# Google kullanmadan kayıt: Cloudflare geçişi
+# Google kullanmadan kayıt ve şifreli yönetim
 
 Bu değişiklik henüz canlı kayıt servisine bağlanmadı. Cloudflare hesabında kaynaklar
-oluşturulup gerçek servis adresi doğrulandıktan sonra yayın akışı site bağlantısını
-günceller. Kod içinde tahmini bir workers.dev adresi veya erişim anahtarı yoktur.
+oluşturulup gerçek servis adresi doğrulandıktan sonra yayın akışı site bağlantısını günceller.
 
-## Sonuç
+## Kullanım
 
-- Site ve kaynak kodu GitHub'da kalır.
-- Tahminler özel Cloudflare D1 veritabanına kaydedilir.
-- Fotoğraf, video ve ses dosyaları özel R2 alanında tutulur. Public bucket açılmaz.
-- Herkes anonim sonuçları görebilir; isimler, yazılı mesajlar ve dosyalar yönetici
-  oturumu gerektirir.
-- Mevcut iki yönetici e-posta koduyla giriş yapar.
-- Aynı kayıt anahtarıyla tekrar gönderim ikinci cevap oluşturmaz.
+- Aile formu ve anonim sonuçlar giriş gerektirmez.
+- Yönetim paneli tek bir ortak yönetici şifresiyle açılır.
+- E-posta, doğrulama kodu veya Google girişi kullanılmaz.
+- Tahminler Cloudflare D1'e, fotoğraf/video/ses özel R2 alanına kaydedilir.
+- İsimler, yazılı mesajlar ve dosyalar yalnızca yönetici oturumuna açıktır.
+- Oturum altı saat geçerlidir. Aynı cevabın tekrar gönderimi ikinci kayıt oluşturmaz.
 
-## Hesap bağlantısı ve yayın
+## Hesap bağlantısı
 
-Cloudflare hesabına erişen bir çalışma ortamı veya hesap bağlantısı gerekir.
-API anahtarları sohbet mesajına veya GitHub dosyalarına yazılmaz.
+Cloudflare oturumuna erişen bir çalışma ortamı veya hesap bağlantısı gerekir.
+Gizli değerleri sohbete ya da kaynak koduna yazma.
 
-GitHub Actions'ın şifreli Secrets bölümünde gereken hesap bağlantıları:
+GitHub Actions'ın şifreli Secrets bölümünde:
 
 - CLOUDFLARE_ACCOUNT_ID
-- CLOUDFLARE_API_TOKEN: sadece seçilen hesapta Worker, D1 ve R2 kurma/yönetme izinleri
+- CLOUDFLARE_API_TOKEN: seçilen hesapta Worker, D1 ve R2 kurma/yönetme izinleri
+- BABY_ADMIN_PASSWORD: ortak yönetici şifresi (8-256 karakter)
 
-CLOUDFLARE_EMAIL_FROM değişkeni mevcut Cloudflare Email Service alanındaki
-yetkili gönderici adresidir. Yönetici kodları yalnızca mevcut iki yöneticiye gönderilir.
-E-posta hizmeti yapılandırılmadan yönetici girişi açık kabul edilmez.
+Yayın sırasında yönetici şifresinden tuzlu PBKDF2-SHA256 özeti üretilir ve Worker'ın
+şifreli secret alanına yazılır. Düz şifre site dosyalarında veya veritabanında tutulmaz.
+Tarayıcıya dönen yönetici oturumu ayrıca veritabanında hash olarak saklanır.
 
-cloudflare-migration dalında yalnızca testler çalışır. main dalına geçişten sonra
-yayın akışı gerçek kaynakları oluşturur veya mevcut aynı adlı kaynakları kullanır,
-şemayı uygular, Worker'ı yayınlar ve sağlık yanıtını doğrular. Yalnızca bu işlem
-başarılı olursa gerçek API adresi gh-pages/config.js dosyasına yazılır.
-GitHub Pages'in mevcut gh-pages yayın kaynağı korunur.
+## Yayın
+
+cloudflare-migration dalında yalnızca testler çalışır. Hesap erişimi hazır olduğunda
+main dalına geçişte yayın akışı D1/R2 kaynaklarını kurar, Worker'ı yayınlar ve sağlık
+yanıtını doğrular. Başarılı doğrulamadan sonra gerçek adres gh-pages/config.js içine
+yazılır ve GitHub Pages yayını açıkça tetiklenir. Mevcut gh-pages yayın kaynağı korunur.
 
 ## Test
 
-Node.js 24 ile ek test paketi gerektirmez:
+Node.js 24 ile:
 
 node --test tests/*.test.cjs cloudflare/tests/*.test.mjs
 
-Testler gerçek SQLite üzerinde kayıt, yinelenen kayıt, özel dosya erişimi, anonim
-sonuçlar, yönetici kodu ve dosya alanı hatasını kontrol eder. Bunlar Cloudflare
-hesabında gerçek bir dağıtımın doğrulaması yerine geçmez.
+Testler gerçek SQLite üzerinde kayıt, tekrar gönderim, özel dosya erişimi, anonim
+sonuçlar, şifreli oturum ve dosya alanı hatasını kontrol eder. Bunlar gerçek
+Cloudflare dağıtımının doğrulaması yerine geçmez.
 
 ## Eski kayıtlar
 
