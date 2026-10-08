@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <meta name="theme-color" content="#fbf7f3">
+  <meta name="theme-color" content="#f5c0d0">
   <title>👶 Bebeğimiz İçin Aile Tahminleri</title>
   <meta name="description" content="Bebeğimiz için aile tahminleri ve küçük hatıralar.">
-  <link rel="stylesheet" href="./style.css?v=fastsave1">
+  <link rel="stylesheet" href="./style.css?v=familytheme2">
 </head>
-<body>
+<body class="family-page">
   <div class="page">
     <header class="topbar">
       <a class="brand" href="./">
@@ -19,47 +19,45 @@
           <small>Aile Tahminleri</small>
         </span>
       </a>
-      <span class="private-note">Aile için hazırlandı</span>
+      <span class="private-note">♡ Ailemizden, bebeğimize</span>
     </header>
 
     <main class="shell" id="app">
       <section class="screen active" data-step="intro">
         <div class="hero">
-          <div class="hero-mark" aria-hidden="true">
-            <span class="pink">?</span>
-            <b>♡</b>
-            <span class="blue">?</span>
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="eyebrow-icon" aria-hidden="true">✦</span> BEBEĞİMİZ İÇİN AİLE TAHMİNLERİ</p>
+            <h1>Biraz <em>merak,</em><br>küçücük bir <span>mucize.</span></h1>
+            <div class="intro-copy">
+              <p class="intro-question">Sence bebeğimiz kız mı, erkek mi?</p>
+              <p>Önce senin tahminini öğrenmek istiyoruz. İstersen bebeğimize küçük bir hatıra da bırak. Cevapların açıklama gününe kadar gizli kalacak. ♡</p>
+            </div>
+            <button class="primary large" type="button" data-action="start">Formu doldur <span aria-hidden="true">→</span></button>
+            <p class="signature">Sevgiler, Naime &amp; Serhan</p>
           </div>
-
-          <p class="eyebrow">👶 BEBEĞİMİZ İÇİN AİLE TAHMİNLERİ</p>
-          <h1>Sence bebeğimiz kız mı, erkek mi?</h1>
-
-          <div class="intro-copy">
-            <p>Önce senin tahminini öğrenmek istiyoruz! 🤫</p>
-            <p>İstersen bebeğimize küçük bir hatıra bırak. Cevapların açıklama gününe kadar gizli kalacak. ❤️</p>
+          <div class="hero-visual" aria-hidden="true">
+            <span class="decor decor-one">✦</span><span class="decor decor-two">✧</span><span class="decor decor-three">♡</span>
+            <div class="hero-orbit orbit-outer"><div class="hero-orbit orbit-inner"><div class="hero-center"><span>👶</span><strong>?</strong></div></div></div>
+            <span class="hero-chip pink-chip">Kız mı?</span><span class="hero-chip blue-chip">Erkek mi?</span>
+            <span class="visual-caption">Minik bir sır, kocaman bir sevgi.</span>
           </div>
-
-          <button class="primary large" type="button" data-action="start">
-            Formu doldur <span>→</span>
-          </button>
-
-          <p class="signature">Sevgiler, Naime &amp; Serhan ❤️</p>
         </div>
+        <div class="keepsake-strip" aria-label="Aile hatıramız"><span><b aria-hidden="true">✦</b> Bir tahmin</span><span><b aria-hidden="true">♡</b> Küçük bir hatıra</span><span><b aria-hidden="true">✧</b> Yıllarca saklanacak sevgi</span></div>
       </section>
 
       <section class="screen" data-step="form">
         <div class="form-head">
           <button class="back" type="button" data-action="back">← Geri</button>
           <div>
-            <p class="eyebrow">👶 BEBEĞİMİZ İÇİN AİLE TAHMİNLERİ</p>
-            <h2>Tahminini ve küçük hatıranı bırak.</h2>
+            <p class="eyebrow">✦ BEBEĞİMİZ İÇİN AİLE TAHMİNLERİ</p>
+            <h2>Tahminini ve <em>küçük hatıranı</em> bırak.</h2>
             <p class="required-info"><span>*</span> Zorunlu alan</p>
           </div>
         </div>
 
         <form id="family-form" class="form-stack">
-          <section class="form-section">
-            <div class="section-kicker">Sen kimsin?</div>
+          <section class="form-section identity-section">
+            <div class="section-heading"><div class="section-kicker">✦ Ailemizin bir parçası</div><h3>Önce seni tanıyalım.</h3></div>
 
             <label class="question required">
               <span class="number">1</span>
@@ -79,7 +77,7 @@
           </section>
 
           <section class="form-section">
-            <div class="section-kicker">🔮 Şimdi Tahmin Zamanı</div>
+            <div class="section-heading"><div class="section-kicker">✧ İçinden geçen ne?</div><h3>Şimdi tahmin zamanı.</h3></div>
 
             <fieldset class="question required">
               <span class="number">3</span>
@@ -102,7 +100,7 @@
 
             <fieldset class="question required" id="first-guess-question" hidden>
               <legend class="visually-hidden">İlk tahminin</legend>
-              <span class="number" aria-hidden="true">6</span>
+              <span class="number" aria-hidden="true">4</span>
               <div class="question-body">
                 <span class="label" id="first-guess-title">İlk öğrendiğinde içinden geçen tahmin neydi? <b class="req">*</b></span>
                 <p class="helper" id="first-guess-help">Seçtiğin cevaba göre seçenekler burada görünecek.</p>
@@ -112,13 +110,13 @@
           </section>
 
           <section class="form-section optional-section">
-            <div class="section-kicker">
-              📸 İsteğe Bağlı Hatıra
+            <div class="section-heading"><div class="section-kicker">
+              ♡ Bebeğimize bir hatıra
               <span class="optional-badge">Zorunlu değil</span>
-            </div>
+            </div><h3>Bir gün dönüp bakacağımız…</h3><p class="section-description">Bir fotoğraf, sesin ya da birkaç güzel söz. Hangisi içinden gelirse.</p></div>
 
             <div class="question optional">
-              <span class="number">25</span>
+              <span class="number">5</span>
               <div class="question-body">
                 <span class="label">Bebeğimize bir fotoğraf bırakmak ister misin?</span>
                 <p class="helper strong-helper">Fotoğraf yükleyebilir veya kameranı açıp şimdi çekebilirsin. ❤️</p>
@@ -140,7 +138,7 @@
             </div>
 
             <div class="question optional">
-              <span class="number">26</span>
+              <span class="number">6</span>
               <div class="question-body">
                 <span class="label">Bebeğimize kısa bir video veya sesli mesaj bırakmak ister misin?</span>
                 <p class="helper strong-helper">Video ya da ses dosyası yükle veya kameranı açıp kısa bir video kaydet.</p>
@@ -208,9 +206,9 @@
 
       <section class="screen" data-step="success">
         <div class="success-wrap">
-          <div class="success-icon">♡</div>
-          <p class="eyebrow">❤️ TEŞEKKÜRLER</p>
-          <h2>Tahminin artık kayıt altında. 😊</h2>
+          <div class="success-icon" aria-hidden="true">♡</div>
+          <p class="eyebrow">✦ SEVGİYLE SAKLANDI</p>
+          <h2>Tahminin, <em>hatıramızın</em> bir parçası.</h2>
 
           <div class="success-copy">
             <p><strong>Cevabını değiştirmek yok!</strong></p>
@@ -232,7 +230,7 @@
       </section>
     </main>
 
-    <footer>Bu sayfa aile hatırası için hazırlanmıştır.</footer>
+    <footer><span aria-hidden="true">♡</span> Naime &amp; Serhan · Bebeğimiz için bir aile hatırası</footer>
   </div>
 
   <iframe id="api-frame" name="api-frame" hidden></iframe>
