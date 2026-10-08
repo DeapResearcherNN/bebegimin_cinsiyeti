@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f5c0d0">
   <title>👶 Bebeğimiz İçin Aile Tahminleri</title>
   <meta name="description" content="Bebeğimiz için aile tahminleri ve küçük hatıralar.">
-  <link rel="stylesheet" href="./style.css?v=familytheme5">
+  <link rel="stylesheet" href="./style.css?v=required-keepsake6">
   <link rel="stylesheet" href="./bebekler.css?v=crawl2">
   <script src="./bebekler.js?v=crawl2" defer></script>
 </head>
@@ -32,7 +32,7 @@
             <h1>Biraz <em>merak,</em><br>küçücük bir <span>mucize.</span></h1>
             <div class="intro-copy">
               <p class="intro-question">Sence bebeğimiz kız mı, erkek mi?</p>
-              <p>Önce senin tahminini öğrenmek istiyoruz. İstersen bebeğimize küçük bir hatıra da bırak. Cevapların açıklama gününe kadar gizli kalacak. ♡</p>
+              <p>Tahminini, bir fotoğrafını ve bebeğimize küçük bir anı notunu bırak. Cevapların açıklama gününe kadar gizli kalacak. ♡</p>
             </div>
             <button class="primary large" type="button" data-action="start">Formu doldur <span aria-hidden="true">→</span></button>
             <p class="signature">Sevgiler, Naime &amp; Serhan</p>
@@ -111,22 +111,22 @@
             </fieldset>
           </section>
 
-          <section class="form-section optional-section">
+          <section class="form-section keepsake-section">
             <div class="section-heading"><div class="section-kicker">
               ♡ Bebeğimize bir hatıra
-              <span class="optional-badge">Zorunlu değil</span>
-            </div><h3>Bir gün dönüp bakacağımız…</h3><p class="section-description">Bir fotoğraf ya da birkaç güzel söz. Hangisi içinden gelirse.</p></div>
+              <span class="optional-badge">Zorunlu</span>
+            </div><h3>Bir gün dönüp bakacağımız…</h3><p class="section-description">Bir fotoğraf ve birkaç güzel sözle bugünü birlikte saklayalım.</p></div>
 
-            <div class="question optional">
+            <div class="question required" role="group" aria-label="Fotoğraf (zorunlu)">
               <span class="number">5</span>
               <div class="question-body">
-                <span class="label">Bebeğimize bir fotoğraf bırakmak ister misin?</span>
+                <span class="label">Bebeğimize bir fotoğraf bırak.</span>
                 <p class="helper strong-helper">Fotoğraf yükleyebilir veya kameranı açıp şimdi çekebilirsin. ❤️</p>
                 <div class="upload-options">
                   <label for="photo-upload" class="upload-action">📁 Fotoğraf yükle</label>
                   <button type="button" class="upload-action upload-action-camera" id="open-photo-camera">📷 Fotoğraf çek</button>
                 </div>
-                <input class="visually-hidden" id="photo-upload" name="photo" type="file" accept="image/*">
+                <input class="visually-hidden" id="photo-upload" name="photo" type="file" accept="image/*" aria-required="true" aria-describedby="photo-error">
                 <input id="native-photo-input" name="nativePhoto" type="file" accept="image/*" capture="environment" hidden>
                 <div class="chosen-preview" id="photo-result" hidden>
                   <img class="photo-preview" id="photo-preview" alt="Seçtiğin fotoğrafın önizlemesi">
@@ -135,7 +135,8 @@
                     <button type="button" class="remove-file" id="remove-photo">Fotoğrafı kaldır</button>
                   </div>
                 </div>
-                <small class="tech-note">İsteğe bağlı · En fazla 8 MB · Fotoğraf özel arşive kaydedilir.</small>
+                <p id="photo-error" class="form-status" role="alert"></p>
+                <small class="tech-note">Zorunlu · En fazla 8 MB · Fotoğraf özel arşive kaydedilir.</small>
               </div>
             </div>
 
@@ -158,16 +159,16 @@
               <p class="camera-message" id="camera-message" role="status" aria-live="polite"></p>
             </section>
 
-            <label class="question optional text-note-option">
+            <label class="question required text-note-option">
               <span class="number">✎</span>
               <div class="question-body">
-                <span class="label">Kısa bir yazı bırakmak ister misin?</span>
+                <span class="label">Bebeğimize bir anı notu yaz.</span>
                 <p class="helper strong-helper">
                   Bebeğimize buradan birkaç cümle yazabilirsin.
                   Bugünkü hissini, tahminini ya da bebeğimize söylemek istediğin küçük bir şeyi bırakabilirsin. ❤️
                 </p>
-                <textarea class="note-input" name="shortNote" rows="6" maxlength="800" placeholder="Kısa yazını buraya yaz..."></textarea>
-                <small class="tech-note">İsteğe bağlı.</small>
+                <textarea class="note-input" name="shortNote" required rows="6" maxlength="800" placeholder="Kısa yazını buraya yaz..."></textarea>
+                <small class="tech-note">Zorunlu · En fazla 800 karakter.</small>
               </div>
             </label>
           </section>
@@ -213,6 +214,6 @@
   <iframe id="api-frame" name="api-frame" hidden></iframe>
   <script src="./config.js?v=cloudflare1"></script>
   <script src="./api.js?v=verified-save2"></script>
-  <script src="./app.js?v=verified-save2"></script>
+  <script src="./app.js?v=required-keepsake3"></script>
 </body>
 </html>

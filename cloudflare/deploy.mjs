@@ -72,19 +72,29 @@ try{
   if(list.settings.FORM_ACIK==="TRUE"){
     checkParticipant=(await call({action:"adminAddParticipant",adminToken,name:checkName,relation:checkRelation})).participantId;
     const photo=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO7sAAAAASUVORK5CYII=","base64");
-    const send=async()=>{
+    const send=async(submissionId=requestId,name=checkName,gender="👧 Kız")=>{
       const form=new FormData();
-      for(const [key,value] of Object.entries({action:"submit",requestId,name:checkName,relation:checkRelation,gender:"👧 Kız",firstGuess:"Hiç tahminim olmadı",shortNote:"Deployment verification"}))form.set(key,value);
+      for(const [key,value] of Object.entries({action:"submit",requestId:submissionId,name,relation:checkRelation,gender,firstGuess:"Hiç tahminim olmadı",shortNote:"Deployment verification"}))form.set(key,value);
       form.set("photo",new File([photo],"verification.png",{type:"image/png"}));
       const response=await fetch(apiUrl,{method:"POST",headers:{Origin:config.vars.SITE_ORIGIN},body:form,signal:AbortSignal.timeout(15000)});
       const data=await response.json();
       if(!response.ok||!data.saved)throw new Error("Live multipart submission verification failed.");
       return data;
     };
+    for(const missing of ["photo","shortNote"]){
+      const rejectedId=requestId+"_missing_"+missing,form=new FormData();
+      for(const [key,value] of Object.entries({action:"submit",requestId:rejectedId,name:checkName,relation:checkRelation,gender:"👧 Kız",firstGuess:"Hiç tahminim olmadı",shortNote:"Required fields verification"}))form.set(key,value);
+      form.set("photo",new File([photo],"verification.png",{type:"image/png"}));form.delete(missing);
+      const rejected=await fetch(apiUrl,{method:"POST",headers:{Origin:config.vars.SITE_ORIGIN},body:form});
+      const rejectedData=await rejected.json();
+      if(rejected.status!==400||rejectedData.ok!==false)throw new Error("Live required field validation failed: "+missing);
+      const receipt=await fetch(apiUrl+"?action=submissionReceipt&requestId="+encodeURIComponent(rejectedId));
+      if((await receipt.json()).saved!==false)throw new Error("Incomplete submission created a response.");
+    }
     const saved=await send(),repeated=await send();
     if(saved.recordId!==repeated.recordId)throw new Error("Live duplicate submission verification failed.");
     secondParticipant=(await call({action:"adminAddParticipant",adminToken,name:secondName,relation:checkRelation})).participantId;
-    const second=await call({action:"submit",requestId:secondRequestId,name:secondName,relation:checkRelation,gender:"👦 Erkek",firstGuess:"Hiç tahminim olmadı",shortNote:"Second visitor verification"});
+    const second=await send(secondRequestId,secondName,"👦 Erkek");
     if(!second.saved||second.recordId===saved.recordId)throw new Error("Live same-browser independent submission failed.");
     for(const [key,recordId] of [[requestId,saved.recordId],[secondRequestId,second.recordId]]){
       const receiptResponse=await fetch(apiUrl+"?action=submissionReceipt&requestId="+encodeURIComponent(key),{cache:"no-store"});
@@ -98,11 +108,11 @@ try{
     if(!media.ok||!photo.equals(Buffer.from(await media.arrayBuffer())))throw new Error("Live private file verification failed.");
     const denied=await fetch(apiUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"adminMedia",recordId:saved.recordId,kind:"photo"})});
     if(denied.status!==401)throw new Error("Live private file authorization verification failed.");
-    console.log("Live checks passed: two different people from the same client, independent durable receipts, duplicate prevention, private R2 upload/download and anonymous results.");
+    console.log("Live checks passed: missing photo/note rejected without saving, two different people from the same client, independent durable receipts, duplicate prevention, private R2 upload/download and anonymous results.");
   }else console.log("Live checks passed: password login and anonymous results; submission skipped because the form is closed.");
 }finally{
   // Only this run's randomly named verification record and object are removed.
-  const rows=await api("/d1/database/"+database.uuid+"/query","POST",{sql:"SELECT id,photo_key FROM responses WHERE request_id=?",params:[requestId]});
+  const rows=await api("/d1/database/"+database.uuid+"/query","POST",{sql:"SELECT id,photo_key FROM responses WHERE request_id IN (?,?)",params:[requestId,secondRequestId]});
   for(const row of rows[0]?.results||[]){
     if(row.photo_key)execFileSync("npx",["--yes","wrangler@4.102.0","r2","object","delete",bucketName+"/"+row.photo_key,"--remote","--force","--config","wrangler.generated.json"],{stdio:"inherit"});
   }

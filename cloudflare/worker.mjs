@@ -48,6 +48,7 @@ async function submit(env,p,uploads){
   const v=validate(p),requestId=clean(p.requestId);
   const previous=await receipt(env,requestId);
   if(previous.saved)return previous;
+  if(!v.shortNote)fail("Bebeğimize bir anı notu yazmalısın.");
   const config=await settings(env);
   if(config.FORM_ACIK!=="TRUE")fail("Form şu anda yeni cevap kabul etmiyor.");
   const identity=await hash(normalize(v.name)+"\0"+normalize(v.relation));
@@ -57,6 +58,7 @@ async function submit(env,p,uploads){
   if(person&&await first(env,"SELECT id FROM responses WHERE participant_id=?",person.id))fail("Bu kişi daha önce cevap gönderdi. Cevap değiştirilemez.",409);
   const recordId=id(),personId=person?.id||id(),submittedAt=new Date().toISOString();
   const photo=validFile(uploads?.photo,"photo"),media=validFile(uploads?.media,"media");
+  if(!photo)fail("Göndermek için bir fotoğraf yüklemeli veya çekmelisin.");
   const keys=[];
   try {
     for(const [kind,file] of [["photo",photo],["media",media]]){

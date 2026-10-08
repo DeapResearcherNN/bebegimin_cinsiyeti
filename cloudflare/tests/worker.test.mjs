@@ -35,8 +35,13 @@ function harness(){
     const ct=response.headers.get("Content-Type")||"";
     return {status:response.status,data:ct.includes("application/json")?await response.json():await response.arrayBuffer(),headers:response.headers};
   }
+  async function submit(fields){
+    const fd=new FormData();for(const [key,value] of Object.entries(fields))fd.set(key,value);
+    fd.set("photo",new File([new Uint8Array([1,2,3])],"family.png",{type:"image/png"}));
+    return call(fields,{body:fd});
+  }
   const dispose=()=>db.close();
-  return {env,db,objects,call,dispose};
+  return {env,db,objects,call,submit,dispose};
 }
 const answer={action:"submit",name:"TEST - integration",relation:"Deneme (TEST)",gender:"👧 Kız",firstGuess:"İlk andan beri kız",shortNote:"Private message",requestId:"req_12345678901234567890"};
 async function login(h){
@@ -45,16 +50,16 @@ async function login(h){
 }
 test("durable save and lost-response receipt are idempotent",async()=>{
  const h=harness();try{
-  assert.equal((await h.call(answer)).data.saved,true);
+  assert.equal((await h.submit(answer)).data.saved,true);
   assert.equal((await h.call({action:"submissionReceipt",requestId:answer.requestId},{method:"GET"})).data.saved,true);
-  await h.call(answer);assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,1);
+  await h.submit(answer);assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,1);
   h.db.exec("UPDATE settings SET value='FALSE' WHERE key='FORM_ACIK'");
-  assert.equal((await h.call(answer)).data.saved,true);
+  assert.equal((await h.submit(answer)).data.saved,true);
  }finally{h.dispose();}
 });
 test("public results never disclose names, notes, tokens or media keys",async()=>{
  const h=harness();try{
-  await h.call(answer);
+  await h.submit(answer);
   const result=await h.call({action:"publicResults"},{method:"GET"});
   assert.equal(result.data.responses.length,1);
   const json=JSON.stringify(result.data);
@@ -66,12 +71,12 @@ test("public results never disclose names, notes, tokens or media keys",async()=
 });
 test("name/relation duplicate, closed form and unlisted participant are rejected",async()=>{
  const h=harness();try{
-  await h.call(answer);
-  assert.equal((await h.call({...answer,requestId:"req_12345678901234567891"})).status,409);
+  await h.submit(answer);
+  assert.equal((await h.submit({...answer,requestId:"req_12345678901234567891"})).status,409);
   h.db.exec("UPDATE settings SET value='TRUE' WHERE key='KATILIMCI_LISTESI_ZORUNLU'");
-  assert.equal((await h.call({...answer,name:"Other person",requestId:"req_12345678901234567892"})).status,400);
+  assert.equal((await h.submit({...answer,name:"Other person",requestId:"req_12345678901234567892"})).status,400);
   h.db.exec("UPDATE settings SET value='FALSE' WHERE key='FORM_ACIK'");
-  assert.equal((await h.call({...answer,name:"Other person",requestId:"req_12345678901234567893"})).status,400);
+  assert.equal((await h.submit({...answer,name:"Other person",requestId:"req_12345678901234567893"})).status,400);
  }finally{h.dispose();}
 });
 
@@ -129,9 +134,9 @@ test("R2 failure does not create a false success or a half-saved database record
 
 test("different people from the same browser/IP each have a durable independent receipt",async()=>{
  const h=harness();try{
-  const first=await h.call({...answer,name:"TEST - First visitor"});
+  const first=await h.submit({...answer,name:"TEST - First visitor"});
   const secondId="req_12345678901234567891";
-  const second=await h.call({...answer,name:"TEST - Second visitor",requestId:secondId});
+  const second=await h.submit({...answer,name:"TEST - Second visitor",requestId:secondId});
   assert.equal(first.data.saved,true);assert.equal(second.data.saved,true);
   assert.notEqual(first.data.recordId,second.data.recordId);
   for(const [requestId,recordId] of [[answer.requestId,first.data.recordId],[secondId,second.data.recordId]]){
@@ -140,7 +145,31 @@ test("different people from the same browser/IP each have a durable independent 
   }
   const adminToken=await login(h),list=await h.call({action:"adminList",adminToken});
   assert.equal(list.data.responses.length,2);
-  assert.equal((await h.call({...answer,name:"TEST - Second visitor",requestId:secondId})).data.recordId,second.data.recordId);
+  assert.equal((await h.submit({...answer,name:"TEST - Second visitor",requestId:secondId})).data.recordId,second.data.recordId);
   assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,2);
+ }finally{h.dispose();}
+});
+
+test("new responses require both a nonblank note and a nonempty photo without partial writes",async()=>{
+ const h=harness();try{
+  const noPhoto=await h.call(answer);assert.equal(noPhoto.status,400);assert.match(noPhoto.data.error,/fotoğraf/);
+  for(const shortNote of ["","   ","\n\t"]){
+   const noNote=await h.submit({...answer,shortNote});assert.equal(noNote.status,400);assert.match(noNote.data.error,/anı notu/);
+  }
+  const fd=new FormData();for(const [key,value] of Object.entries(answer))fd.set(key,value);
+  fd.set("photo",new File([],"empty.png",{type:"image/png"}));
+  assert.equal((await h.call(answer,{body:fd})).status,400);
+  assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,0);
+  assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM participants").get().n,0);
+  assert.equal(h.objects.size,0);
+  assert.equal((await h.submit(answer)).data.saved,true);
+ }finally{h.dispose();}
+});
+test("a previously saved receipt remains recoverable even with missing required fields",async()=>{
+ const h=harness();try{
+  const saved=await h.submit(answer);
+  const retry=await h.call({...answer,shortNote:""});
+  assert.equal(retry.data.saved,true);assert.equal(retry.data.recordId,saved.data.recordId);
+  assert.equal(h.db.prepare("SELECT COUNT(*) AS n FROM responses").get().n,1);
  }finally{h.dispose();}
 });

@@ -8,6 +8,9 @@
   const form = document.querySelector("#family-form");
   const submitButton = document.querySelector("#submit-button");
   const submitStatus = document.querySelector("#submit-status");
+  const noteInput = form.querySelector('[name="shortNote"]');
+  const photoError = document.querySelector("#photo-error");
+  noteInput.addEventListener("input",()=>noteInput.setCustomValidity(noteInput.value.trim() ? "" : "Bebeğimize bir anı notu yazmalısın."));
 
   const firstQuestion = document.querySelector("#first-guess-question");
   const firstOptions = document.querySelector("#first-guess-options");
@@ -96,6 +99,8 @@
 
   function resetSelected(kind) {
     selectedFiles[kind] = null;
+    photoError.textContent = "";
+    inputs.photo.upload.removeAttribute("aria-invalid");
     inputs[kind].upload.value = "";
     if (inputs[kind].native) inputs[kind].native.value = "";
     inputs[kind].output.hidden = true;
@@ -123,6 +128,8 @@
     if (source !== "native" && inputs[kind].native) inputs[kind].native.value = "";
 
     selectedFiles[kind] = file;
+    photoError.textContent = "";
+    inputs.photo.upload.removeAttribute("aria-invalid");
     submitStatus.textContent = "";
 
     releaseUrl(kind);
@@ -339,6 +346,7 @@
     if (button.dataset.action === "back") show("intro");
     if (button.dataset.action === "restart") {
       form.reset();
+      noteInput.setCustomValidity("");
       updateFirstGuess();
       resetSelected("photo");
       submitStatus.textContent = "";
@@ -356,7 +364,16 @@
     if (submitButton.disabled) return;
     submitStatus.textContent = "";
 
+    noteInput.setCustomValidity(noteInput.value.trim() ? "" : "Bebeğimize bir anı notu yazmalısın.");
     if (!form.reportValidity()) return;
+    if (!selectedFiles.photo || !selectedFiles.photo.size) {
+      photoError.textContent = "Göndermek için bir fotoğraf yüklemeli veya çekmelisin.";
+      submitStatus.textContent = photoError.textContent;
+      inputs.photo.upload.setAttribute("aria-invalid", "true");
+      document.querySelector("#open-photo-camera").focus();
+      photoError.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
 
     if (!apiUrl) {
       submitStatus.textContent = "Kayıt sistemi henüz sunucuya bağlanmadı. Şu an form gönderilemez.";
@@ -390,7 +407,7 @@
         relation:data.get("relation"),
         gender:data.get("gender"),
         firstGuess:data.get("firstGuess"),
-        shortNote:data.get("shortNote") || "",
+        shortNote:String(data.get("shortNote") || "").trim(),
         photoName:photo.name,
         photoMime:photo.mime,
         photoData:photo.data
