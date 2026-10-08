@@ -365,8 +365,8 @@
           const label=String(row[0] || "").trim();
           return label && label !== "Anonim etiket" && !label.startsWith("#");
         });
-        if(!dataRows.length){
-          reject(new Error("Anonim sonuç tablosu henüz bağlanmadı. Google Sheets'teki Erişime izin ver işlemini tamamla."));
+        if (value.table.rows.some(row => columns(row).some(cell => /^#(?:REF!|ERROR!|N\/A|VALUE!)/.test(String(cell))))) {
+          reject(new Error("Anonim sonuç tablosunun bağlantısı hatalı. Google Sheets izinlerini kontrol et."));
           return;
         }
 
@@ -383,7 +383,7 @@
           sequence:Number(row[8])||0,
           shortNote:"",photoUrl:"",mediaUrl:"",submittedAt:""
         }));
-        const overallCount=Number(dataRows[0][9]);
+        const overallCount=Number(dataRows[0]?.[9] ?? 0);
         const participantTotal=Number.isFinite(overallCount)
           ? Math.max(responses.length,overallCount) : responses.length;
         const participants=responses.map(r=>({
@@ -410,18 +410,15 @@
   }
 
   async function fetchPublicResults() {
-    // Both requests are read-only and return only sanitized public data.
-    // The independent Google Sheets connection also works when Google's
-    // Apps Script web apps fail in multi-account Chrome sessions.
-    try {
-      return await Promise.any([fetchPublicSheetResults(),fetchAppsScriptResults()]);
-    } catch(error) {
-      throw new Error(
-        "Her iki sonuç bağlantısı da yanıt vermedi. Anonim sonuç tablosunun " +
-        "'Erişime izin ver' ve 'Bağlantıya sahip herkes: Görüntüleyici' " +
-        "ayarları tamamlanmalı."
-      );
+    // Prefer the configured read-only mirror; do not open a login-bound
+    // Apps Script request on every refresh when the mirror already works.
+    let mirrorError;
+    if (publicSheetId) {
+      try { return await fetchPublicSheetResults(); }
+      catch (error) { mirrorError = error; }
     }
+    try { return await fetchAppsScriptResults(); }
+    catch (error) { throw mirrorError || error; }
   }
 
   async function refreshResults() {

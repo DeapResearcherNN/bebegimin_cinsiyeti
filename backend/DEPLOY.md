@@ -29,6 +29,29 @@ Google e-posta adreslerinin sahipliğini e-postaya gönderilen tek kullanımlık
 8. Google yeni e-posta gönderim izinleri isterse kodu kontrol ettikten sonra onayla.
 9. Eski `/exec` URL'si aynı kalır; `config.js` zaten mevcut dağıtım URL'sine bağlıdır.
 
+## Kayıt adresi Google girişine yönlendiriyorsa
+
+GitHub Pages güncellemesi Apps Script dağıtımını güncellemez. Formun aile üyeleri
+tarafından Google hesabıyla giriş yapmadan kullanılabilmesi için mevcut web uygulaması
+dağıtımında şu iki seçenek gerekir:
+
+- **Şu kullanıcı olarak çalıştır: Ben (dağıtımı yapan hesap)**
+- **Erişimi olan kullanıcılar: Herkes** (yalnızca Google hesabı olanlar seçeneği değil)
+
+Dağıtım adresini gizli pencerede `?action=health&callback=checkHealth` ekleyerek aç.
+Google giriş ekranı yerine `checkHealth({"ok":true,...})` yanıtını görmelisin.
+Güncel kodun yanıtında `submissionVersion: "receipt-v2"` bulunur.
+Giriş ekranı görünüyorsa ön yüz kodu bu erişim engelini düzeltemez.
+
+Bu ayar özel cevap tablosunu veya Drive klasörlerini herkese açmaz. Bunların mevcut
+özel paylaşımını koru. `publicResults` yalnızca anonim verileri döndürür; yönetim
+işlemleri e-posta kodu ve sunucu tarafından doğrulanan oturum gerektirir.
+
+Form artık önce servisi kontrol eder, tek bir POST gönderir ve rastgele kayıt
+anahtarıyla sunucudan kayıt onayı bekler. Sunucu hata yanıtı aynı gönderim denemesine
+bağlanır. Başarılı yanıt yedek veya bildirim hatası nedeniyle başarısız sayılmaz.
+İstek tekrarlandığında aynı kayıt anahtarı ikinci cevap oluşturmaz.
+
 Artık `ADMIN_PASSWORD` veya `FAMILY_CODE` Script Properties gerekmez.
 Önceden eklenmişlerse kaldırılabilir. **Kod hiçbir Google hesap parolasını istemez.**
 

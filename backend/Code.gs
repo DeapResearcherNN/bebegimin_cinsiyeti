@@ -17,7 +17,7 @@ function doGet(e) {
     let result;
 
     if (action === 'health') {
-      result = { ok: true, service: 'baby-family-api', authVersion: 'email-otp-v2', publicVersion: 'anonymous-v1', time: new Date().toISOString() };
+      result = { ok: true, service: 'baby-family-api', authVersion: 'email-otp-v2', publicVersion: 'anonymous-v1', submissionVersion: 'receipt-v2', time: new Date().toISOString() };
     } else if (action === 'publicResults') {
       // No admin token required. This route never returns real names, free text,
       // upload links, file IDs, participant IDs or exact submission timestamps.
@@ -65,6 +65,12 @@ function doPost(e) {
     if (p.requestId) result.requestId = p.requestId;
     return postMessage_(result);
   } catch (err) {
+    if ((p.action || 'submit') === 'submit' && validReceiptId_(p.requestId) && validReceiptId_(p.attemptId)) {
+      try {
+        CacheService.getScriptCache().put('baby:error:' + p.requestId + ':' + p.attemptId,
+          JSON.stringify({ok:false,error:String(err.message || err)}), 600);
+      } catch (ignored) {}
+    }
     return postMessage_({ ok: false, error: String(err.message || err), requestId: p.requestId || '' });
   }
 }
@@ -88,10 +94,6 @@ function setupSharing() {
 
 function submitResponse_(p) {
 
-  const settings = getSettings_();
-  if (String(settings.FORM_ACIK).toUpperCase() !== 'TRUE') {
-    throw new Error('Form şu anda yeni cevap kabul etmiyor.');
-  }
 
   const name = clean_(p.name);
   const relation = clean_(p.relation);
@@ -124,6 +126,10 @@ function submitResponse_(p) {
       }
     }
 
+    const settings = getSettings_();
+    if (String(settings.FORM_ACIK).toUpperCase() !== 'TRUE') {
+      throw new Error('Form şu anda yeni cevap kabul etmiyor.');
+    }
     let participant = findParticipant_(participantsSheet, name, relation);
     const listRequired = String(settings.KATILIMCI_LISTESI_ZORUNLU).toUpperCase() === 'TRUE';
 
@@ -199,8 +205,11 @@ function submitResponse_(p) {
       }
     }
 
-    participantsSheet.getRange(participant.row, 5, 1, 2)
-      .setValues([[true, submittedAt]]);
+    try {
+      participantsSheet.getRange(participant.row, 5, 1, 2).setValues([[true, submittedAt]]);
+    } catch (participantError) {
+      console.error('Katılımcı durumu güncellenemedi: ' + String(participantError));
+    }
 
     // Auxiliary operations must never invalidate an already saved response.
     try {
@@ -269,9 +278,14 @@ function submissionReceipt_(p) {
 
   const sheet=SpreadsheetApp.openById(APP.SHEET_ID).getSheetByName('Cevaplar');
   const record=findReceipt_(sheet,requestId);
-  return record
-    ? {ok:true,saved:true,submittedAt:record.submittedAt}
-    : {ok:true,saved:false};
+  if (record) return {ok:true,saved:true,submittedAt:record.submittedAt};
+  if (validReceiptId_(p.attemptId)) {
+    try {
+      const failure = CacheService.getScriptCache().get('baby:error:' + requestId + ':' + p.attemptId);
+      if (failure) return JSON.parse(failure);
+    } catch (ignored) {}
+  }
+  return {ok:true,saved:false};
 }
 
 function getStatus_(p) {

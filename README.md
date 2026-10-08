@@ -2,11 +2,11 @@
 
 Aile üyelerinin bebeğin cinsiyetini tahmin edebildiği ve bebeğe bir mesaj bırakabildiği özel aile web sitesi.
 
-## İlk sürüm
+## Mevcut yapı
 
 Bu sürümde:
 
-- Mobil uyumlu çok adımlı tahmin akışı
+- Mobil uyumlu tahmin formu
 - İsim ve yakınlık bilgisi
 - Kız / Erkek tahmini
 - İsteğe bağlı kısa not
@@ -15,15 +15,34 @@ Bu sürümde:
 - GitHub Pages ile uyumlu statik yapı
 - Arama motorlarına noindex talimatı
 
-## Önemli
+Yanıtlar Google Apps Script üzerinden özel Google Sheet'e, fotoğraf ve ses/video
+dosyaları Google Drive'a kaydedilir. `config.js` mevcut web uygulaması adresini
+ve anonim sonuç tablosunu tanımlar.
 
-İlk prototipte gönderilen tahminler yalnızca kullanıcının kendi tarayıcısındaki localStorage alanında tutulur. Ailedeki tüm kişilerin cevaplarını ortak olarak saklamak için sonraki aşamada bir veritabanı ve güvenli API bağlanacaktır.
+- `index.html`: aile formu, fotoğraf ve kısa video kaydı
+- `sonuclar.html`: kimlik ve özel hatıra içeriği göstermeyen sonuçlar
+- `admin.html`: e-posta koduyla korunan yönetim ekranı
+- `api.js`: bağlantı kontrolü, tek POST ve sunucu kayıt onayı
+- `backend/Code.gs`: Google Apps Script sunucu kodu
 
-Planlanan sonraki aşamalar:
+Tarayıcı yalnızca sonuç yenileme işaretini ve yeniden gönderim için geçici rastgele
+kayıt anahtarını/cevap özetinin hash değerini saklar. Gerçek cevapların kalıcı arşivi
+Google'dadır. Sunucu kaydı doğrulanmadan başarı ekranı gösterilmez.
 
-1. Ortak aile veritabanı
-2. Ortak aile linki ve erişim kontrolü
-3. Admin görünümü
-4. Canlı görüntülü cinsiyet açıklaması
-5. Görüşme kaydı
-6. Her kamera akışından tepki klipleri
+## Yayın ve bağlantı
+
+GitHub Pages, kök dizindeki dosyaları yayınlar. Apps Script ayrı bir dağıtımdır ve
+GitHub'a kod göndermek sunucuyu güncellemez. Google girişine yönlenen kayıt adresi
+ve yeni sunucu sürümünü yayınlama adımları için [backend/DEPLOY.md](backend/DEPLOY.md)
+dosyasına bak.
+
+## Kontroller
+
+Node.js ile, ek paket kurmadan:
+
+```sh
+node --test tests/*.test.cjs
+```
+
+Kontroller tek gönderimi, kayıt onayını, bağlantı/hata davranışını, tekrar gönderimin
+ikinci cevap oluşturmamasını ve kayıt sonrası yardımcı işlemlerin başarısızlığını kapsar.
