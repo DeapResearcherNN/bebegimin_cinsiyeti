@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      pages: write
     concurrency:
       group: baby-cloudflare-production
       cancel-in-progress: false
@@ -55,3 +56,4 @@ jobs:
             git commit -m "Publish verified Cloudflare family API connection"
             git push origin HEAD:gh-pages
           fi
+          gh api --method POST repos/"$GITHUB_REPOSITORY"/pages/builds

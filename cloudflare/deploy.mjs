@@ -18,12 +18,8 @@ for(let page=1;page<=20;page++){
   if(database||rows.length<100)break;
 }
 if(!database)database=await api("/d1/database","POST",{name:databaseName});
-let bucket;
-for(let page=1;page<=20;page++){
-  const result=await api("/r2/buckets?per_page=100&page="+page);
-  bucket=result.buckets.find(row=>row.name===bucketName);
-  if(bucket||result.buckets.length<100)break;
-}
+const bucketResult=await api("/r2/buckets?per_page=1000&name_contains="+encodeURIComponent(bucketName));
+const bucket=(bucketResult.buckets||[]).find(row=>row.name===bucketName);
 if(!bucket)await api("/r2/buckets","POST",{name:bucketName});
 const config={name:"bebegimin-cinsiyeti-api",main:"cloudflare/worker.mjs",account_id:account,
   compatibility_date:"2026-10-01",workers_dev:true,
@@ -36,8 +32,8 @@ if(process.env.CLOUDFLARE_EMAIL_FROM){
  config.send_email=[{name:"EMAIL",allowed_destination_addresses:["naimegunduz75@gmail.com","serhan.narli@gmail.com"]}];
 }
 await writeFile("wrangler.generated.json",JSON.stringify(config,null,2));
-execFileSync("npx",["--yes","wrangler@4","d1","execute",databaseName,"--remote","--file","cloudflare/schema.sql","--config","wrangler.generated.json"],{stdio:"inherit"});
-const output=execFileSync("npx",["--yes","wrangler@4","deploy","--config","wrangler.generated.json"],{encoding:"utf8"});
+execFileSync("npx",["--yes","wrangler@4.102.0","d1","execute",databaseName,"--remote","--file","cloudflare/schema.sql","--config","wrangler.generated.json"],{stdio:"inherit"});
+const output=execFileSync("npx",["--yes","wrangler@4.102.0","deploy","--config","wrangler.generated.json"],{encoding:"utf8"});
 const url=output.match(/https:\/\/bebegimin-cinsiyeti-api\.[a-zA-Z0-9-]+\.workers\.dev/);
 if(!url)throw new Error("Cloudflare did not return the deployment URL.");
 const apiUrl=url[0]+"/api";
