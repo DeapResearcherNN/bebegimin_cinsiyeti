@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '24'
       - run: node --test tests/*.test.cjs cloudflare/tests/*.test.mjs
-      - run: node --check cloudflare/worker.mjs && node --check cloudflare/deploy.mjs && node --check api.js && node --check admin.js && node --check app.js && node --check sonuclar.js
+      - run: node --check cloudflare/worker.mjs && node --check cloudflare/deploy.mjs && node --check api.js && node --check admin.js && node --check app.js && node --check sonuclar.js && node --check bebekler.js
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: test

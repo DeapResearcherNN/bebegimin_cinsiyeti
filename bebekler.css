@@ -1,0 +1,35 @@
+/* Two quiet, decorative crawlers, each clipped to their own color half. */
+.baby-background-page{display:flex;flex-direction:column;min-height:100vh}
+.baby-background-page>.page,.baby-background-page>.site-wrap{margin:0 auto;flex-shrink:0}
+.baby-scene{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));height:145px;flex-shrink:0;margin-top:auto;pointer-events:none;user-select:none;overflow:hidden}
+.baby-zone{position:relative;overflow:hidden;--baby-size:140px;--roam-time:23s;--phase:-4s;--crawl-time:.92s;--outfit:#e6a0bd;--seam:#c980a3;--sparkle:#bd829e}
+.baby-boy{--roam-time:27s;--phase:-16s;--crawl-time:1.04s;--outfit:#8ebae0;--seam:#6c9ec7;--sparkle:#739dc2}
+.baby-zone:after{content:"";position:absolute;height:1px;bottom:17px;left:9%;right:9%;background:linear-gradient(90deg,transparent,var(--sparkle),transparent);opacity:.22}
+.baby-traveler{position:absolute;bottom:15px;left:0;width:var(--baby-size);animation:baby-roam var(--roam-time) linear var(--phase) infinite;will-change:transform}
+.baby-facing{animation:baby-turn var(--roam-time) steps(1,end) var(--phase) infinite}
+.baby-drawing{display:block;width:100%;height:auto;overflow:visible}
+.baby-outfit{fill:var(--outfit)}.baby-seam{stroke:var(--seam)}
+.baby-boy .baby-bow,.baby-boy .baby-ponytail{display:none}
+.baby-body{transform-origin:84px 74px;animation:baby-breathe var(--crawl-time) ease-in-out infinite}
+.baby-head{transform-origin:114px 63px;animation:baby-nod var(--crawl-time) ease-in-out infinite}
+.baby-front-arm{transform-origin:111px 67px;animation:baby-arm var(--crawl-time) ease-in-out infinite}
+.baby-back-arm{transform-origin:109px 66px;animation:baby-arm var(--crawl-time) ease-in-out infinite;animation-delay:calc(var(--crawl-time) / -2)}
+.baby-front-leg{transform-origin:71px 80px;animation:baby-knee var(--crawl-time) ease-in-out infinite;animation-delay:calc(var(--crawl-time) / -2)}
+.baby-back-leg{transform-origin:70px 77px;animation:baby-knee var(--crawl-time) ease-in-out infinite}
+.baby-sparkle{position:absolute;color:var(--sparkle);opacity:.45;font:22px Georgia,serif;pointer-events:none}
+.baby-sparkle-one{left:18%;top:11px}.baby-sparkle-two{right:17%;top:42px;font-size:17px}
+@keyframes baby-roam{0%,100%{transform:translateX(12px)}50%{transform:translateX(calc(50vw - var(--baby-size) - 24px))}}
+@keyframes baby-turn{0%,100%{transform:scaleX(1)}50%{transform:scaleX(-1)}}
+@keyframes baby-breathe{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-2px) rotate(1deg)}}
+@keyframes baby-nod{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(1px) rotate(1deg)}}
+@keyframes baby-arm{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(9deg)}}
+@keyframes baby-knee{0%,100%{transform:rotate(8deg)}50%{transform:rotate(-9deg)}}
+@media(max-width:650px){
+  .baby-scene{height:112px}.baby-zone{--baby-size:108px;--roam-time:17s}.baby-boy{--roam-time:20s}
+  .baby-traveler{bottom:12px}.baby-zone:after{bottom:14px}.baby-sparkle-one{top:8px;font-size:18px}.baby-sparkle-two{top:32px;font-size:14px}
+}
+@media(max-width:360px){.baby-zone{--baby-size:94px}}
+@media(prefers-reduced-motion:reduce){
+  .baby-scene *{animation:none!important}.baby-traveler{left:calc(50% - var(--baby-size) / 2);transform:none;will-change:auto}
+}
+@media print{.baby-scene{display:none}}

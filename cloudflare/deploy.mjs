@@ -101,7 +101,7 @@ try{
   await call({action:"logoutAdmin",adminToken});
 }
 await mkdir("publish",{recursive:true});
-const paths=[".nojekyll","index.html","style.css","app.js","api.js","admin.html","admin.css","admin.js","sonuclar.html","sonuclar.css","sonuclar.js","sonuclar-yenile.js","yonetim.html"];
+const paths=[".nojekyll","index.html","style.css","app.js","api.js","admin.html","admin.css","admin.js","sonuclar.html","sonuclar.css","sonuclar.js","sonuclar-yenile.js","yonetim.html","bebekler.css","bebekler.js"];
 for(const path of paths)await writeFile("publish/"+path,await readFile(path));
 await writeFile("publish/config.js","window.BABY_APP_CONFIG = "+JSON.stringify({provider:"cloudflare",apiUrl})+";\n");
 console.log("Verified deployment: "+url[0]);
